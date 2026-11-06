@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Penny
 
-## Getting Started
+Personal monthly expense tracker.
 
-First, run the development server:
+**Penny** — a calm, simple app for tracking monthly spending.
+
+## Visual
+
+- Brand **Penny**: a geometric "P" with a mint coin (`src/app/icon.svg`, `src/components/Base/BrandMark.tsx`)
+- Monochrome palette: charcoal + black, muted red only when over budget
+- Optional Liquid Glass layer, combinable with light or dark
+- Fonts: **Sora** (display/numbers) + **Be Vietnam Pro** (UI)
+- Mobile-first, bottom nav, FAB to add transactions
+
+## Run locally
 
 ```bash
+cd /Users/hana/Projects/valoir
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Data lives in **Supabase** (Postgres + Auth). Sign-in is passwordless (email link).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Set up Supabase
 
-## Learn More
+1. Create a project on [supabase.com](https://supabase.com).
+2. **SQL Editor** → paste and run `supabase/schema.sql` (creates the tables and Row Level Security).
+3. **Authentication → URL Configuration**: set *Site URL* to `http://localhost:3000` and add
+   `http://localhost:3000/**` (plus your production domain later) to *Redirect URLs*.
+4. Copy `.env.example` → `.env.local` and fill in the project URL and publishable key
+   (**Project Settings → API keys**).
 
-To learn more about Next.js, take a look at the following resources:
+## API (`/api/v1`)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Every route needs a signed-in session (cookie) and only ever touches the caller's rows (RLS).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Method & path | What it does |
+| --- | --- |
+| `GET /api/v1/data` | All of the user's data, keyed by collection |
+| `POST /api/v1/sync` | Batch of changes: `{ upserts: { transactions: [...] }, deletes: { transactions: ["id"] } }` |
+| `GET /api/v1/{collection}` | One collection |
+| `POST /api/v1/{collection}` | Create / replace one row |
+| `PUT /api/v1/{collection}/{id}` | Replace one row (body id must match) |
+| `DELETE /api/v1/{collection}/{id}` | Delete one row |
 
-## Deploy on Vercel
+Collections: `categories`, `transactions`, `budgets` (key: `yearMonth`), `recurringRules`, `monthPlans`,
+`transportMeters`, `transportEntries`, `spendPlans`. Request bodies are validated with zod
+(`src/lib/api/collections.ts`). The web app edits optimistically and syncs the diff in the background
+(`src/contexts/StoreContext.tsx`).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/app/              Routes (pages, layouts, /api/v1 route handlers)
+src/apis/             Client calls to the API
+src/components/       UI, one folder per feature (index.tsx + parts); Base/ = shared pieces
+src/contexts/         StoreContext (data + sync), ThemeContext, I18nContext
+src/hooks/            useMonth, useHiddenModules
+src/lib/store/        AppState, data actions (pure), demo seed
+src/lib/helper/       Pure helpers: money, dates, plans, transport, reports
+src/lib/api/          Server side: collection schemas (zod) + DB access
+src/lib/constants/    Storage keys, built-in category ids, sync timings
+src/lib/type/         Shared types
+src/proxy.ts          Session refresh + sign-in guard
+supabase/schema.sql   Schema + Row Level Security
+```
+
+More detail for contributors: `AGENTS.md` and `agent_docs/`.
+
+## Plans (Kế hoạch)
+
+Budget a trip, outing or party: list the items with an estimate, then fill in what
+you really spent (plus any extra costs) afterwards. The plan shows how much you
+saved or overspent, and **Close & record** posts the actual costs to Transactions
+(re-posting replaces them, never duplicates). Logic lives in `src/lib/helper/spendPlans.ts`.
+
+## Active month
+
+All screens use `?month=YYYY-MM`. Changing the month in the header keeps context across tabs.
+
+## Languages
+
+Vietnamese, English and Korean. Switch in **Settings → Language**. The choice is saved in a `valoir-locale` cookie (and `localStorage`), so the server renders the right language on the first paint — no flash of English on reload. On a first visit the browser's `Accept-Language` decides.
+
+Dictionaries live in `src/lib/i18n/dictionaries/`.
+
+## Year review
+
+**Reports → Year** lists every month in the selected year with income, expense, balance, and month-over-month deltas (spend & balance). Tap a month to open its dashboard.
