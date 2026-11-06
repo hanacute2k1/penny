@@ -318,6 +318,17 @@ export type Dictionary = {
     linkError: string;
     genericError: string;
     invalidEmail: string;
+    welcome: string;
+    heroTitle: string;
+    perkNoPassword: string;
+    perkPrivate: string;
+    perkDevices: string;
+    heroSubtitle: string;
+    formTitle: string;
+    formHint: string;
+    privacyNote: string;
+    sampleExpense: string;
+    sampleIncome: string;
     account: string;
     signOut: string;
     syncError: string;
@@ -695,7 +706,7 @@ export const en: Dictionary = {
     subtitle: "We'll email you a sign-in link — no password needed.",
     emailLabel: 'Email',
     emailPlaceholder: 'you@example.com',
-    send: 'Email me a link',
+    send: 'Send me a link',
     sending: 'Sending…',
     sentTitle: 'Check your email',
     sentBody: 'We sent a sign-in link to {email}. Open it on this device to continue.',
@@ -704,6 +715,17 @@ export const en: Dictionary = {
     linkError: 'That link has expired or was already used. Please request a new one.',
     genericError: "Couldn't send the email. Please try again in a moment.",
     invalidEmail: 'Please enter a valid email.',
+    welcome: 'Welcome to Penny',
+    heroTitle: 'Money made easy, every month',
+    perkNoPassword: 'No password',
+    perkPrivate: 'Only you see your data',
+    perkDevices: 'Synced on every device',
+    heroSubtitle: 'Jot down what you spend in seconds and always know how much is left.',
+    formTitle: 'Start with your email',
+    formHint: "We'll send you a link to sign in. No password to remember.",
+    privacyNote: 'Only you can see your data',
+    sampleExpense: 'Lunch',
+    sampleIncome: 'Salary',
     account: 'Account',
     signOut: 'Sign out',
     syncError: "Couldn't save — will retry",

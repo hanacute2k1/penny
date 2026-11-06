@@ -6,7 +6,7 @@ Personal monthly expense tracker.
 
 ## Visual
 
-- Brand **Penny**: a geometric "P" with a mint coin (`src/app/icon.svg`, `src/components/Base/BrandMark.tsx`)
+- Brand **Penny**: a lowercase "p" whose bowl is a gold coin, on a warm cream tile (`src/lib/helper/brand.ts`, used by `src/components/Base/BrandMark.tsx`, `src/app/icon.svg`, `src/app/apple-icon.tsx`)
 - Monochrome palette: charcoal + black, muted red only when over budget
 - Optional Liquid Glass layer, combinable with light or dark
 - Fonts: **Sora** (display/numbers) + **Be Vietnam Pro** (UI)

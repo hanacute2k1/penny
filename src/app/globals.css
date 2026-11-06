@@ -564,3 +564,470 @@ html[data-glass='on'] .animate-sheet {
     --lg-sheet: var(--surface-solid);
   }
 }
+
+/*
+  Sign-in page (components/Auth). Phone first, then md and up:
+  * phone: system font, centred logo, glass card over drifting pastel light,
+    twinkling stars and gold coins that float and slowly spin;
+  * desktop: rounded Nunito type (app/login/page.tsx), warm cream background,
+    a picture of the app and a gold button that matches the logo.
+  Dark mode keeps only a faint glow. Motion stops with prefers-reduced-motion.
+*/
+:root {
+  /* Brand gold, the coin in the logo (see lib/helper/brand.ts). Same in both themes. */
+  --brand-gold-light: #ffe9ad;
+  --brand-gold: #f8c45c;
+  --brand-gold-deep: #e99f35;
+  --brand-gold-edge: #b9761f;
+  --brand-ink: #26324f;
+}
+
+/* ── Shared ─────────────────────────────────────────────── */
+
+.login-display {
+  letter-spacing: -0.02em;
+}
+
+.login-twinkle {
+  color: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--chart-4), var(--chart-6)) 72%,
+    var(--ink-soft)
+  );
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--chart-6) 80%, transparent));
+  animation: login-twinkle 3.2s ease-in-out infinite;
+}
+
+html[data-theme='dark'] .login-twinkle {
+  color: color-mix(in srgb, var(--chart-6) 70%, white);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--chart-6) 60%, transparent));
+}
+
+@keyframes login-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.6) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(45deg);
+  }
+}
+
+.login-float {
+  animation: login-float 6s ease-in-out infinite;
+}
+
+@keyframes login-float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* Coins drift up and down with a little sway… */
+.login-coin {
+  perspective: 300px;
+  animation: login-coin-bob 7s ease-in-out infinite;
+}
+
+@keyframes login-coin-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-8deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(8deg);
+  }
+}
+
+/* …and tilt from side to side, catching the light (never far enough to show the back). */
+.login-coin-spin {
+  filter: drop-shadow(0 6px 8px rgba(150, 95, 20, 0.22));
+  animation: login-coin-tilt 4.5s ease-in-out infinite alternate;
+}
+
+@keyframes login-coin-tilt {
+  from {
+    transform: rotateY(-55deg);
+  }
+  to {
+    transform: rotateY(55deg);
+  }
+}
+
+html[data-theme='dark'] .login-coin-spin {
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--brand-gold) 35%, transparent));
+}
+
+@keyframes login-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* Entrance: each block rises in, a beat apart (delays set inline). */
+.login-rise {
+  animation: login-rise 0.6s var(--ease) both;
+}
+
+@keyframes login-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* A band of light that sweeps across the button every few seconds. */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    color-mix(in srgb, var(--on-btn) 28%, transparent) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  animation: btn-shine 4s ease-in-out 1.2s infinite;
+  pointer-events: none;
+}
+
+@keyframes btn-shine {
+  0% {
+    transform: translateX(-120%);
+  }
+  35%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+/* ── Phone ──────────────────────────────────────────────── */
+
+.login-aurora {
+  position: absolute;
+  inset: -20%;
+  z-index: -20;
+  pointer-events: none;
+  filter: blur(64px) saturate(115%);
+}
+
+.login-aurora span {
+  position: absolute;
+  width: 46vmax;
+  height: 46vmax;
+  border-radius: 50%;
+  opacity: 0.55;
+  animation: login-drift 18s ease-in-out infinite alternate;
+}
+
+.login-aurora span:nth-child(1) {
+  top: 8%;
+  left: 12%;
+  background: var(--chart-1);
+}
+
+.login-aurora span:nth-child(2) {
+  top: 30%;
+  right: 6%;
+  background: var(--chart-5);
+  animation-duration: 22s;
+  animation-delay: -6s;
+}
+
+.login-aurora span:nth-child(3) {
+  bottom: 4%;
+  left: 30%;
+  background: var(--chart-3);
+  animation-duration: 26s;
+  animation-delay: -12s;
+}
+
+html[data-theme='dark'] .login-aurora span {
+  opacity: 0.1;
+}
+
+@keyframes login-drift {
+  to {
+    transform: translate3d(6%, -8%, 0) scale(1.12);
+  }
+}
+
+/* Logo: a soft halo and a slow float. */
+.login-mark {
+  animation: login-float 6s ease-in-out infinite;
+}
+
+.login-mark::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  z-index: -1;
+  border-radius: 28px;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--chart-4) 80%, transparent),
+    transparent
+  );
+  filter: blur(6px);
+}
+
+/* "Welcome to Penny" with a light passing through the letters. */
+.login-shimmer-text {
+  background: linear-gradient(
+      100deg,
+      var(--ink-soft) 40%,
+      color-mix(in srgb, var(--chart-5) 80%, var(--ink)) 50%,
+      var(--ink-soft) 60%
+    )
+    0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: login-sweep-text 4.5s ease-in-out infinite;
+}
+
+@keyframes login-sweep-text {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+/* Frosted card with a bright top rim, like a sheet of glass catching light. */
+.login-card {
+  position: relative;
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 20px 50px -20px rgba(30, 40, 70, 0.25),
+    var(--shadow);
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.2) 40%,
+    var(--line)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+html[data-theme='dark'] .login-card {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    var(--shadow);
+}
+
+html[data-theme='dark'] .login-card::before {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04) 50%);
+}
+
+.login-input {
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.login-input:focus {
+  background: var(--surface);
+  border-color: color-mix(in srgb, var(--ink) 40%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--chart-1) 45%, transparent);
+}
+
+.login-input[aria-invalid='true'] {
+  border-color: var(--coral);
+}
+
+.login-submit {
+  background: var(--btn);
+  color: var(--on-btn);
+}
+
+.login-submit:hover {
+  opacity: 0.88;
+}
+
+.login-sent-icon {
+  background: color-mix(in srgb, var(--chart-3) 55%, var(--surface));
+  color: var(--ink);
+  animation: login-pop 0.5s var(--ease) both;
+}
+
+/* ── Desktop (md and up) ────────────────────────────────── */
+
+@media (min-width: 48rem) {
+  .login-page {
+    font-family: var(--font-friendly), var(--font-ui);
+    background: linear-gradient(180deg, #fff6ea 0%, #fdf4f1 45%, var(--paper) 100%);
+  }
+
+  html[data-theme='dark'] .login-page {
+    background: var(--paper);
+  }
+
+  .login-glow {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        38rem 26rem at 90% 8%,
+        color-mix(in srgb, var(--chart-4) 55%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        34rem 24rem at 0% 95%,
+        color-mix(in srgb, var(--chart-3) 45%, transparent),
+        transparent 70%
+      );
+  }
+
+  html[data-theme='dark'] .login-glow {
+    opacity: 0.16;
+  }
+
+  .login-card {
+    border-radius: 32px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow:
+      0 2px 6px rgba(80, 60, 30, 0.05),
+      0 24px 60px -24px rgba(120, 80, 30, 0.28);
+  }
+
+  .login-card::before {
+    content: none;
+  }
+
+  html[data-theme='dark'] .login-card {
+    box-shadow: var(--shadow);
+  }
+
+  .login-input {
+    border: 2px solid transparent;
+  }
+
+  .login-input:focus {
+    border-color: var(--brand-gold);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--brand-gold) 25%, transparent);
+  }
+
+  .login-input[aria-invalid='true'] {
+    border-color: var(--coral);
+  }
+
+  .login-submit {
+    background: linear-gradient(180deg, var(--brand-gold-light) -40%, var(--brand-gold) 70%);
+    color: var(--brand-ink);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 10px 24px -10px color-mix(in srgb, var(--brand-gold-deep) 80%, transparent);
+  }
+
+  .login-submit:hover {
+    opacity: 1;
+    filter: brightness(1.04) saturate(1.05);
+  }
+
+  .login-submit.btn-shine::after {
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.45) 50%,
+      transparent 65%
+    );
+  }
+
+  .login-sent-icon {
+    background: color-mix(in srgb, var(--brand-gold) 35%, var(--surface));
+    color: var(--brand-ink);
+  }
+
+  html[data-theme='dark'] .login-sent-icon {
+    color: var(--ink);
+  }
+}
+
+.login-badge {
+  background: color-mix(in srgb, var(--chart-4) 45%, var(--surface));
+  color: var(--ink);
+}
+
+.login-badge svg {
+  color: var(--brand-gold-deep);
+}
+
+.login-pill {
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgba(80, 60, 30, 0.06);
+}
+
+.login-preview-card {
+  border-radius: 26px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 40px -20px rgba(80, 60, 30, 0.3);
+}
+
+.login-chip {
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 24px -12px rgba(80, 60, 30, 0.3);
+}
+
+.login-bar {
+  background: linear-gradient(
+    90deg,
+    var(--chart-3),
+    color-mix(in srgb, var(--chart-3) 55%, var(--income))
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-float,
+  .login-twinkle,
+  .login-coin,
+  .login-coin-spin,
+  .login-aurora span,
+  .login-mark,
+  .login-shimmer-text,
+  .login-sent-icon,
+  .login-rise,
+  .btn-shine::after {
+    animation: none;
+  }
+
+  .login-twinkle {
+    opacity: 0.6;
+  }
+}
