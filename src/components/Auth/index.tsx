@@ -10,17 +10,24 @@ import {
   Mail,
   MailCheck,
   MonitorSmartphone,
+  Moon,
   ShieldCheck,
+  Sun,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { BrandMark } from '@/components/Base/BrandMark';
 import { Segmented } from '@/components/Base/Segmented';
+import { Tooltip } from '@/components/Base/Tooltip';
 import { useI18n } from '@/contexts/I18nContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { LOCALES, type Locale } from '@/lib/i18n';
-import { createClient } from '@/lib/supabase/client';
+import type { AuthOptions } from '@/lib/supabase/authOptions';
+import { safeNext, sendEmailLink, type SignInProblem } from './actions';
 import { AppPreview } from './AppPreview';
+import { CodeEntry } from './CodeEntry';
 import { Coin, Sparkle } from './Decor';
+import { OtherMethods } from './OtherMethods';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -52,10 +59,14 @@ const COINS = [
   { top: '88%', left: '74%', size: 38, delay: -5.1 },
 ];
 
-/** Passwordless sign-in: we email a one-time link that lands on /auth/callback. */
-export function LoginView() {
+/**
+ * Sign-in without a password: an emailed link (or the code in it), Google, or trying
+ * Penny as a guest. `options` says which of the last two are switched on in Supabase.
+ */
+export function LoginView({ options }: { options: AuthOptions }) {
   const { t, tx, locale, setLocale } = useI18n();
   const searchParams = useSearchParams();
+  const next = safeNext(searchParams.get('next'));
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [error, setError] = useState<string | null>(
@@ -71,19 +82,23 @@ export function LoginView() {
     }
     setError(null);
     setStatus('sending');
-    const next = searchParams.get('next') ?? '/';
-    const callback = new URL('/auth/callback', window.location.origin);
-    callback.searchParams.set('next', next);
-    const { error: sendError } = await createClient().auth.signInWithOtp({
-      email: address,
-      options: { emailRedirectTo: callback.toString() },
-    });
-    if (sendError) {
+    const problem = await sendEmailLink(address, next);
+    if (problem) {
       setStatus('idle');
-      setError(t.auth.genericError);
+      setError(problem === 'rateLimited' ? t.auth.rateLimited : t.auth.genericError);
       return;
     }
     setStatus('sent');
+  }
+
+  function showProblem(problem: SignInProblem) {
+    setError(
+      problem === 'rateLimited'
+        ? t.auth.rateLimited
+        : problem === 'guestOff'
+          ? t.auth.guestOff
+          : t.auth.providerError,
+    );
   }
 
   const perks = [
@@ -96,6 +111,10 @@ export function LoginView() {
     <main className="login-page relative isolate min-h-dvh overflow-hidden">
       <PhoneSky />
       <div aria-hidden="true" className="login-glow hidden md:block" />
+      {/* Phone: the theme button sits in the top corner (there's no header bar). */}
+      <div className="absolute right-4 top-4 z-10 md:hidden">
+        <ThemeButton />
+      </div>
 
       <div className="mx-auto flex min-h-dvh w-full max-w-sm flex-col px-4 py-10 md:max-w-5xl md:px-8 md:pb-8 md:pt-5">
         <header className="hidden items-center justify-between gap-3 md:flex">
@@ -103,12 +122,15 @@ export function LoginView() {
             <BrandMark size={38} />
             <span className="login-display text-xl font-extrabold tracking-tight">Penny</span>
           </span>
-          <LanguagePill
-            value={locale}
-            onChange={setLocale}
-            label={t.settings.language}
-            names={t.languages}
-          />
+          <span className="flex items-center gap-2">
+            <ThemeButton />
+            <LanguagePill
+              value={locale}
+              onChange={setLocale}
+              label={t.settings.language}
+              names={t.languages}
+            />
+          </span>
         </header>
 
         <div className="grid flex-1 items-center md:grid-cols-[1.05fr_1fr] md:gap-12 md:py-10">
@@ -157,6 +179,7 @@ export function LoginView() {
                   <p className="mt-2 text-[0.9375rem] leading-relaxed text-ink-soft">
                     {tx(t.auth.sentBody, { email: email.trim() })}
                   </p>
+                  <CodeEntry email={email.trim()} next={next} />
                   <div className="mt-5 grid gap-2">
                     <button
                       type="button"
@@ -238,6 +261,8 @@ export function LoginView() {
                     <Lock size={14} strokeWidth={2} aria-hidden="true" />
                     {t.auth.privacyNote}
                   </p>
+
+                  <OtherMethods options={options} next={next} onProblem={showProblem} />
                 </form>
               )}
             </div>
@@ -311,6 +336,26 @@ function PhoneSky() {
 }
 
 /** Compact language switch: a pill with the current language, opening the native picker. */
+/** Round light/dark switch, matching the language pill. */
+function ThemeButton() {
+  const { theme, toggleTheme } = useTheme();
+  const { t } = useI18n();
+  const label = theme === 'dark' ? t.settings.themeToLight : t.settings.themeToDark;
+  const ThemeIcon = theme === 'dark' ? Sun : Moon;
+  return (
+    <Tooltip label={label}>
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label={label}
+        className="login-pill tap grid h-10 w-10 place-items-center rounded-full"
+      >
+        <ThemeIcon size={17} strokeWidth={2} aria-hidden="true" />
+      </button>
+    </Tooltip>
+  );
+}
+
 function LanguagePill({
   value,
   onChange,

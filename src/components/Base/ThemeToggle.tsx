@@ -5,6 +5,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import { Icon } from '@/components/Base/Icon';
 import { Segmented } from '@/components/Base/Segmented';
 import { Switch } from '@/components/Base/Switch';
+import { Tooltip } from '@/components/Base/Tooltip';
 
 /**
  * Light/Dark is a one-of-two choice; Liquid Glass is an independent on/off
@@ -16,30 +17,27 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const glassLabel = glass ? t.settings.glassOn : t.settings.glassOff;
 
   if (compact) {
-    const label = theme === 'dark' ? t.settings.themeLight : t.settings.themeDark;
+    const label = theme === 'dark' ? t.settings.themeToLight : t.settings.themeToDark;
     const iconButton =
       'glass-control tap grid h-11 w-11 place-items-center rounded-full border border-line bg-surface text-ink-soft hover:text-ink';
     return (
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          aria-label={label}
-          title={label}
-          className={iconButton}
-        >
-          <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={20} />
-        </button>
-        <button
-          type="button"
-          onClick={toggleGlass}
-          aria-pressed={glass}
-          aria-label={glassLabel}
-          title={glassLabel}
-          className={`${iconButton} ${glass ? 'border-accent/40 bg-accent-soft text-accent-deep' : ''}`}
-        >
-          <Icon name="glass" size={20} />
-        </button>
+        <Tooltip label={label}>
+          <button type="button" onClick={toggleTheme} aria-label={label} className={iconButton}>
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={20} />
+          </button>
+        </Tooltip>
+        <Tooltip label={glassLabel} hint={t.settings.glassHint}>
+          <button
+            type="button"
+            onClick={toggleGlass}
+            aria-pressed={glass}
+            aria-label={glassLabel}
+            className={`${iconButton} ${glass ? 'border-accent/40 bg-accent-soft text-accent-deep' : ''}`}
+          >
+            <Icon name="glass" size={20} />
+          </button>
+        </Tooltip>
       </div>
     );
   }

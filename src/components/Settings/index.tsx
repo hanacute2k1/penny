@@ -15,13 +15,15 @@ import { Toast } from '@/components/Base/Toast';
 import { navItems } from '@/components/Layout/navItems';
 import { useHiddenModules } from '@/hooks/useHiddenModules';
 import { createClient } from '@/lib/supabase/client';
+import { ConfirmDialog } from '@/components/Base/ConfirmDialog';
+import { SaveAccountSheet } from '@/components/Auth/SaveAccountSheet';
 
 /** "Rent, Wifi, Netflix…" — the first few names, so the row shows what's inside. */
 function preview(names: string[]) {
   return names.slice(0, 3).join(', ') + (names.length > 3 ? '…' : '');
 }
 
-export function SettingsView({ email }: { email: string | null }) {
+export function SettingsView({ email, isGuest }: { email: string | null; isGuest: boolean }) {
   const { categories, recurringRules, monthPlans } = useStore();
   const { t, tx, locale, setLocale, categoryName } = useI18n();
   const { hidden, setVisible } = useHiddenModules();
@@ -72,7 +74,7 @@ export function SettingsView({ email }: { email: string | null }) {
       </h1>
 
       <div className="panel overflow-hidden">
-        <AccountRow email={email} />
+        <AccountRow email={email} isGuest={isGuest} />
         {links.map((link) => (
           <Link
             key={link.href}
@@ -204,9 +206,11 @@ function Section({
 }
 
 /** Who is signed in, plus sign-out. A full reload afterwards clears all in-memory data. */
-export function AccountRow({ email }: { email: string | null }) {
+export function AccountRow({ email, isGuest }: { email: string | null; isGuest: boolean }) {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [confirmOut, setConfirmOut] = useState(false);
 
   async function signOut() {
     setBusy(true);
@@ -217,20 +221,47 @@ export function AccountRow({ email }: { email: string | null }) {
   }
 
   return (
-    <div className="flex items-center gap-3 border-b border-line px-4 py-3.5 md:px-5">
+    <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3.5 md:px-5">
       <SettingIcon name="user" tone={1} />
       <span className="min-w-0 flex-1">
-        <span className="block font-semibold">{t.auth.account}</span>
-        <span className="block truncate text-sm text-ink-muted">{email ?? '—'}</span>
+        <span className="block font-semibold">{isGuest ? t.auth.guestName : t.auth.account}</span>
+        <span className="block text-sm text-ink-muted">
+          {isGuest ? (
+            t.auth.guestDeviceOnly
+          ) : (
+            <span className="block truncate">{email ?? '—'}</span>
+          )}
+        </span>
       </span>
-      <button
-        type="button"
-        onClick={signOut}
-        disabled={busy}
-        className="tap shrink-0 rounded-full border border-line bg-paper px-4 py-2 text-sm font-semibold text-coral hover:bg-coral-soft disabled:opacity-50"
-      >
-        {t.auth.signOut}
-      </button>
+      <span className="flex shrink-0 gap-2">
+        {isGuest ? (
+          <button
+            type="button"
+            onClick={() => setSaving(true)}
+            className="btn-primary tap rounded-full px-4 py-2 text-sm font-semibold"
+          >
+            {t.auth.linkEmail}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={isGuest ? () => setConfirmOut(true) : signOut}
+          disabled={busy}
+          className="tap rounded-full border border-line bg-paper px-4 py-2 text-sm font-semibold text-coral hover:bg-coral-soft disabled:opacity-50"
+        >
+          {t.auth.signOut}
+        </button>
+      </span>
+
+      <SaveAccountSheet open={saving} onClose={() => setSaving(false)} />
+      <ConfirmDialog
+        open={confirmOut}
+        title={t.auth.guestSignOutTitle}
+        message={t.auth.guestSignOutBody}
+        confirmLabel={t.auth.signOut}
+        onCancel={() => setConfirmOut(false)}
+        onConfirm={signOut}
+      />
     </div>
   );
 }

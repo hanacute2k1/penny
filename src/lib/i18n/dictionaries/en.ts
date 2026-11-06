@@ -136,9 +136,12 @@ export type Dictionary = {
     theme: string;
     themeLight: string;
     themeDark: string;
+    themeToDark: string;
+    themeToLight: string;
     glass: string;
     glassOn: string;
     glassOff: string;
+    glassHint: string;
     modules: string;
     modulesHint: string;
     textSize: string;
@@ -317,6 +320,7 @@ export type Dictionary = {
     useAnother: string;
     linkError: string;
     genericError: string;
+    rateLimited: string;
     invalidEmail: string;
     welcome: string;
     heroTitle: string;
@@ -329,6 +333,25 @@ export type Dictionary = {
     privacyNote: string;
     sampleExpense: string;
     sampleIncome: string;
+    or: string;
+    withGoogle: string;
+    asGuest: string;
+    guestHint: string;
+    codeLabel: string;
+    codePlaceholder: string;
+    verifyCode: string;
+    codeError: string;
+    providerError: string;
+    guestName: string;
+    guestOff: string;
+    guestDeviceOnly: string;
+    linkEmail: string;
+    saveTitle: string;
+    saveBody: string;
+    saveSent: string;
+    emailTaken: string;
+    guestSignOutTitle: string;
+    guestSignOutBody: string;
     account: string;
     signOut: string;
     syncError: string;
@@ -517,9 +540,12 @@ export const en: Dictionary = {
     theme: 'Theme',
     themeLight: 'Light',
     themeDark: 'Dark',
+    themeToDark: 'Switch to dark mode',
+    themeToLight: 'Switch to light mode',
     glass: 'Liquid Glass',
     glassOn: 'Turn off Liquid Glass',
     glassOff: 'Turn on Liquid Glass',
+    glassHint: 'Frosted-glass look for the bars and buttons',
     modules: 'Sections',
     modulesHint: "Turn off what you don't use. Overview and Transactions stay on.",
     textSize: 'Text size',
@@ -712,8 +738,10 @@ export const en: Dictionary = {
     sentBody: 'We sent a sign-in link to {email}. Open it on this device to continue.',
     resend: 'Send again',
     useAnother: 'Use a different email',
-    linkError: 'That link has expired or was already used. Please request a new one.',
+    linkError:
+      'That link has expired, was already used, or was opened in a different browser. Please request a new one.',
     genericError: "Couldn't send the email. Please try again in a moment.",
+    rateLimited: 'Too many sign-in emails for now. Wait a few minutes, then try again.',
     invalidEmail: 'Please enter a valid email.',
     welcome: 'Welcome to Penny',
     heroTitle: 'Money made easy, every month',
@@ -726,6 +754,29 @@ export const en: Dictionary = {
     privacyNote: 'Only you can see your data',
     sampleExpense: 'Lunch',
     sampleIncome: 'Salary',
+    or: 'or',
+    withGoogle: 'Continue with Google',
+    asGuest: 'Continue as guest',
+    guestHint:
+      'No email needed. Your data saves on this device; link an email in Settings to use it on others.',
+    codeLabel: 'Or type the code from the email',
+    codePlaceholder: '123456',
+    verifyCode: 'Sign in',
+    codeError: "That code isn't right or has expired.",
+    providerError: "Couldn't sign in. Please try again.",
+    guestName: 'Guest',
+    guestOff: "Guest mode isn't available right now. Please sign in with email.",
+    guestDeviceOnly: 'Data on this device only',
+    linkEmail: 'Link email',
+    saveTitle: 'Link your email',
+    saveBody:
+      "Enter your email and we'll send a link to confirm it. Then sign in with it on any device to see your data.",
+    saveSent: 'We sent a confirmation link to {email}. Open it to finish.',
+    emailTaken:
+      "This email already has an account. Sign out, then sign in with that email (guest data won't be merged).",
+    guestSignOutTitle: 'Sign out of guest mode?',
+    guestSignOutBody:
+      "You haven't linked an email, so you won't be able to get back to this guest data.",
     account: 'Account',
     signOut: 'Sign out',
     syncError: "Couldn't save — will retry",

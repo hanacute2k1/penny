@@ -17,7 +17,9 @@ export function MonthPicker({ showSettings = true }: { showSettings?: boolean })
   const isCurrent = yearMonth === nowMonth;
 
   return (
-    <header className="top-bar sticky top-0 z-30 border-b border-line bg-paper/90 px-4 py-2.5 backdrop-blur-sm md:px-8 md:py-3">
+    // On wider screens there's no strip behind the controls, with or without Liquid Glass:
+    // they float on their own beside the floating sidebar, like the glass toolbar.
+    <header className="top-bar sticky top-0 z-30 border-b border-line bg-paper/90 px-4 py-2.5 backdrop-blur-sm md:border-transparent md:bg-transparent md:px-8 md:py-3 md:backdrop-blur-none">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <div className="glass-control flex min-w-0 items-center rounded-full border border-line bg-surface p-1">

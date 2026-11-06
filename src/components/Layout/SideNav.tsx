@@ -22,8 +22,10 @@ export function SideNav() {
         : 'text-ink-soft hover:bg-paper hover:text-ink'
     }`;
 
+  // Always a floating panel, with or without Liquid Glass: glass only changes the
+  // material, never the size or position, so switching it doesn't move anything.
   return (
-    <aside className="side-bar fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar-w)] flex-col border-r border-line bg-surface px-4 py-6 md:flex">
+    <aside className="side-bar fixed inset-y-3 left-3 z-40 hidden w-[calc(var(--sidebar-w)-1.5rem)] flex-col rounded-[1.75rem] border border-line bg-surface px-4 py-6 shadow-[var(--shadow)] md:flex">
       <div className="mb-8 flex items-center gap-2.5 px-2">
         <BrandMark size={36} />
         <span className="text-lg font-semibold tracking-tight">{t.brand}</span>
