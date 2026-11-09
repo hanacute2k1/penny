@@ -1,5 +1,6 @@
 /** Client calls to the Penny API (/api/v1). A 401 means the session ended. */
 import type { SyncRequest } from '@/lib/api/collections';
+import { normalizeSpendPlan } from '@/lib/helper/spendPlans';
 import type { AppState } from '@/lib/store/state';
 
 export class UnauthorizedError extends Error {}
@@ -17,7 +18,7 @@ export async function fetchRemoteState(): Promise<AppState> {
     monthPlans: data.monthPlans ?? [],
     transportMeters: data.transportMeters ?? [],
     transportEntries: data.transportEntries ?? [],
-    spendPlans: data.spendPlans ?? [],
+    spendPlans: (data.spendPlans ?? []).map(normalizeSpendPlan),
   };
 }
 

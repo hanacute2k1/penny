@@ -197,13 +197,62 @@ export type SpendPlanItem = {
   categoryId: string;
   /** Planned amount. 0 for unplanned extras. */
   estimate: number;
-  /** What it really cost — null until the user fills it in. */
+  /** Paid ahead of the trip (deposit / booking), part of the total. */
+  deposit: number;
+  /** What it really cost in total — null until the user fills it in after the trip. */
   actual: number | null;
   /** Unplanned cost that came up (phát sinh). */
   isExtra: boolean;
 };
 
-/** A budget for one occasion — trip, outing, party — compared with reality afterwards. */
+/** What kind of stop an itinerary entry is; picks its icon and colour. */
+export type PlanActivityKind = 'move' | 'stay' | 'food' | 'see' | 'other';
+
+/** One entry in a trip's day-by-day itinerary. */
+export type PlanActivity = {
+  id: string;
+  date: string; // YYYY-MM-DD, one of the plan's days
+  /** "HH:mm"; entries without a time go after the timed ones. */
+  time?: string;
+  title: string;
+  /** Free text ("Chợ Đà Lạt"); opened in Google Maps. */
+  place?: string;
+  /** A Google Maps link pasted by the user; opened and copied as-is. */
+  mapUrl?: string;
+  /** Position read from the map link, used to draw the day's route. */
+  lat?: number;
+  lng?: number;
+  note?: string;
+  kind: PlanActivityKind;
+  /**
+   * Transport only: where it leaves from. `place` / `mapUrl` / `lat` / `lng` are
+   * then where it arrives.
+   */
+  from?: string;
+  fromMapUrl?: string;
+  fromLat?: number;
+  fromLng?: number;
+  /**
+   * Stays: check-out day and time. Transport: arrival day and time.
+   * A stay with a check-out shows up twice in the itinerary (check-in on `date`,
+   * check-out on `endDate`) and as the night's lodging on the days between; a
+   * trip arriving on a later day (night bus) shows up on both days too.
+   */
+  endDate?: string;
+  endTime?: string;
+  done: boolean;
+  /** The check-out / arrival stop is ticked off separately. */
+  endDone?: boolean;
+};
+
+/** Things to prepare or pack before leaving. */
+export type PlanChecklistItem = {
+  id: string;
+  text: string;
+  done: boolean;
+};
+
+/** A trip or occasion: day-by-day itinerary, costs (deposit before, total after), checklist. */
 export type SpendPlan = {
   id: string;
   title: string;
@@ -211,7 +260,13 @@ export type SpendPlan = {
   startDate: string; // YYYY-MM-DD
   endDate?: string; // YYYY-MM-DD, optional for one-day plans
   note?: string;
+  /** How many people share the costs, for the per-person figure. */
+  people: number;
   items: SpendPlanItem[];
+  activities: PlanActivity[];
+  checklist: PlanChecklistItem[];
+  /** Set while a read-only link is shared (/share/<shareId>). */
+  shareId?: string;
   /** "done" once the user has closed it out after the occasion. */
   status: 'planning' | 'done';
   /** Number of transactions last posted from this plan (0 = never posted). */
@@ -225,6 +280,9 @@ export type SpendPlanInput = {
   startDate: string;
   endDate?: string;
   note?: string;
+  people: number;
   /** Items keep their id when edited so actuals already entered survive. */
   items: (Omit<SpendPlanItem, 'id'> & { id?: string })[];
 };
+
+export type PlanActivityInput = Omit<PlanActivity, 'id' | 'done' | 'endDone'>;

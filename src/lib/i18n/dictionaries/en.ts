@@ -1,4 +1,5 @@
 import type { SpendPlanItemKey, SpendPlanTemplateKey } from '@/lib/helper/spendPlans';
+import type { PlanActivityKind } from '@/lib/type';
 export type Dictionary = {
   brand: string;
   loading: string;
@@ -304,6 +305,123 @@ export type Dictionary = {
     inDays: string;
     tomorrow: string;
     today: string;
+    people: string;
+    peopleCount: string;
+    tabItinerary: string;
+    tabCosts: string;
+    tabPrepare: string;
+    dayLabel: string;
+    dayCount: string;
+    activityCount: string;
+    addActivity: string;
+    editActivity: string;
+    activityTitle: string;
+    activityTitlePlaceholder: string;
+    activityDay: string;
+    activityTime: string;
+    activityPlace: string;
+    activityPlacePlaceholder: string;
+    activityNote: string;
+    kinds: Record<PlanActivityKind, string>;
+    openMap: string;
+    dayEmpty: string;
+    unscheduled: string;
+    unscheduledHint: string;
+    deleteActivity: string;
+    markDone: string;
+    anyTime: string;
+    deposit: string;
+    totalAfter: string;
+    remaining: string;
+    perPerson: string;
+    expected: string;
+    costsHint: string;
+    estimateShort: string;
+    checklistTitle: string;
+    checklistPlaceholder: string;
+    checklistAdd: string;
+    checklistDone: string;
+    checklistEmpty: string;
+    suggestions: string;
+    checklistSuggestions: string[];
+    removeChecklist: string;
+    share: string;
+    shareTitle: string;
+    shareBody: string;
+    shareCreate: string;
+    shareCopy: string;
+    shareCopied: string;
+    shareSend: string;
+    shareStop: string;
+    shareStopHint: string;
+    shareOn: string;
+    sharedFrom: string;
+    sharedCta: string;
+    sharedNotFound: string;
+    readOnly: string;
+    addStay: string;
+    stayTitlePlaceholder: string;
+    checkIn: string;
+    checkOut: string;
+    checkInDay: string;
+    checkInTime: string;
+    checkOutDay: string;
+    checkOutTime: string;
+    stayHint: string;
+    sleepAt: string;
+    mapLink: string;
+    mapLinkPlaceholder: string;
+    paste: string;
+    copy: string;
+    copied: string;
+    mapLinkFound: string;
+    mapLinkLoading: string;
+    mapLinkNoPoint: string;
+    mapLinkInvalid: string;
+    route: string;
+    routeTitle: string;
+    routeSummary: string;
+    routeEstimateHint: string;
+    routeOpen: string;
+    routePart: string;
+    routeMissing: string;
+    routeMissingHint: string;
+    routeEmpty: string;
+    routeDetour: string;
+    routeDetourBody: string;
+    routeReorder: string;
+    routeTight: string;
+    routeSpread: string;
+    routeGood: string;
+    routeStart: string;
+    routeEnd: string;
+    durMinutes: string;
+    durHours: string;
+    durHoursMinutes: string;
+    km: string;
+    longTripTitle: string;
+    longTripHint: string;
+    addOutbound: string;
+    addReturn: string;
+    depart: string;
+    arrive: string;
+    departDay: string;
+    departTime: string;
+    arriveDay: string;
+    arriveTime: string;
+    fromPlace: string;
+    fromPlacePlaceholder: string;
+    toPlace: string;
+    toPlacePlaceholder: string;
+    moveTitlePlaceholder: string;
+    returnTitle: string;
+    fromMapLink: string;
+    toMapLink: string;
+    arriveAt: string;
+    arriveAtDay: string;
+    routeScheduled: string;
+    jumpToDay: string;
+    happening: string;
     templates: Record<SpendPlanTemplateKey, string>;
     templateItems: Record<SpendPlanItemKey, string>;
   };
@@ -666,10 +784,10 @@ export const en: Dictionary = {
   },
   spendPlans: {
     title: 'Plans',
-    subtitle: 'Plan a trip or event, then compare',
+    subtitle: 'Itinerary, costs and packing for every trip',
     create: 'New plan',
     edit: 'Edit plan',
-    empty: 'No plans yet. Make one for your next trip or party.',
+    empty: 'No trips yet. Plan your next one.',
     upcoming: 'Upcoming',
     review: 'To check',
     done: 'Done',
@@ -709,6 +827,141 @@ export const en: Dictionary = {
     inDays: 'In {count} days',
     tomorrow: 'Tomorrow',
     today: 'Today',
+    people: 'People',
+    peopleCount: '{count} people',
+    tabItinerary: 'Itinerary',
+    tabCosts: 'Costs',
+    tabPrepare: 'Packing',
+    dayLabel: 'Day {n}',
+    dayCount: '{count} days',
+    activityCount: '{count} stops',
+    addActivity: 'Add a stop',
+    editActivity: 'Edit stop',
+    activityTitle: 'What',
+    activityTitlePlaceholder: 'e.g. Breakfast at the market',
+    activityDay: 'Day',
+    activityTime: 'Time',
+    activityPlace: 'Place',
+    activityPlacePlaceholder: 'e.g. Xuan Huong Lake',
+    activityNote: 'Note',
+    kinds: {
+      move: 'Travel',
+      stay: 'Stay',
+      food: 'Food',
+      see: 'Sights',
+      other: 'Other',
+    },
+    openMap: 'Open map',
+    dayEmpty: 'Nothing planned for this day',
+    unscheduled: 'Not on a day',
+    unscheduledHint: "These fall outside the trip's dates. Tap one to move it.",
+    deleteActivity: 'Delete stop',
+    markDone: 'Mark as done',
+    anyTime: 'Any time',
+    deposit: 'Deposit',
+    totalAfter: 'Total after',
+    remaining: 'Left to pay',
+    perPerson: 'Per person',
+    expected: 'Expected total',
+    costsHint: 'Before the trip, enter deposits. After it, enter what each thing cost in total.',
+    estimateShort: 'Planned {amount}',
+    checklistTitle: 'To pack & prepare',
+    checklistPlaceholder: 'Add something to bring',
+    checklistAdd: 'Add',
+    checklistDone: '{done} of {total} ready',
+    checklistEmpty: 'Nothing yet. Pick a suggestion below or add your own.',
+    suggestions: 'Suggestions',
+    checklistSuggestions: [
+      'ID / Passport',
+      'Power bank',
+      'Medicine',
+      'Clothes',
+      'Toiletries',
+      'Sunscreen',
+      'Cash',
+      'Raincoat',
+    ],
+    removeChecklist: 'Remove',
+    share: 'Share',
+    shareTitle: 'Share plan',
+    shareBody:
+      'Anyone with the link can see the itinerary, costs and packing list, no account needed. They can only view it.',
+    shareCreate: 'Create share link',
+    shareCopy: 'Copy link',
+    shareCopied: 'Copied',
+    shareSend: 'Send with another app',
+    shareStop: 'Stop sharing',
+    shareStopHint: "The current link won't open any more.",
+    shareOn: 'Shared',
+    sharedFrom: 'A plan shared with Penny',
+    sharedCta: 'Plan your own with Penny',
+    sharedNotFound: "This link doesn't open any more. The owner may have stopped sharing it.",
+    readOnly: 'View only',
+    addStay: 'Stay',
+    stayTitlePlaceholder: 'Hotel, homestay…',
+    checkIn: 'Check in',
+    checkOut: 'Check out',
+    checkInDay: 'Check-in day',
+    checkInTime: 'Check-in time',
+    checkOutDay: 'Check-out day',
+    checkOutTime: 'Check-out time',
+    stayHint: 'Check-in and check-out go into the itinerary on their own.',
+    sleepAt: 'Night at {name}',
+    mapLink: 'Google Maps link',
+    mapLinkPlaceholder: 'Paste a link from Google Maps',
+    paste: 'Paste',
+    copy: 'Copy',
+    copied: 'Copied',
+    mapLinkFound: 'Location found, it will show on the route map.',
+    mapLinkLoading: 'Reading the location…',
+    mapLinkNoPoint: "Couldn't read a location from this link. It still saves, just not on the map.",
+    mapLinkInvalid: "This isn't a Google Maps link.",
+    route: 'Route',
+    routeTitle: 'Route · {day}',
+    routeSummary: '{km} · about {time} on the move',
+    routeEstimateHint:
+      'Straight-line distances and rough times. Open Google Maps for real roads and traffic.',
+    routeOpen: 'Open route in Google Maps',
+    routePart: 'Part {n}',
+    routeMissing: "{count} stops aren't on the map",
+    routeMissingHint: 'Add a Google Maps link to these stops to place them.',
+    routeEmpty:
+      "No stop has a location yet. Add Google Maps links to this day's stops to see the route.",
+    routeDetour: 'You may be doubling back',
+    routeDetourBody: 'Going {order} is about {km} shorter.',
+    routeReorder: 'Use this order, keep the times',
+    routeTight: '{from} → {to} takes about {need}, but the plan leaves {gap}.',
+    routeSpread: 'Stops are up to {km} apart. Consider splitting this day.',
+    routeGood: 'This order looks efficient.',
+    routeStart: 'Leave from',
+    routeEnd: 'Back to',
+    durMinutes: '{m} min',
+    durHours: '{h} h',
+    durHoursMinutes: '{h} h {m} min',
+    km: '{n} km',
+    longTripTitle: 'Going far?',
+    longTripHint: 'Add the ride there, the stay and the ride back. They land on the right days.',
+    addOutbound: 'Trip there',
+    addReturn: 'Trip back',
+    depart: 'Departure',
+    arrive: 'Arrival',
+    departDay: 'Departure day',
+    departTime: 'Departs',
+    arriveDay: 'Arrival day',
+    arriveTime: 'Arrives',
+    fromPlace: 'From',
+    fromPlacePlaceholder: 'e.g. Mien Dong bus station',
+    toPlace: 'To',
+    toPlacePlaceholder: 'e.g. Da Lat bus station',
+    moveTitlePlaceholder: 'e.g. Sleeper bus, flight VN123',
+    returnTitle: 'Trip back',
+    fromMapLink: 'Google Maps link (from)',
+    toMapLink: 'Google Maps link (to)',
+    arriveAt: 'arrives {time}',
+    arriveAtDay: 'arrives {time}, {day}',
+    routeScheduled: '{km} · {time} by schedule',
+    jumpToDay: 'Pick a day',
+    happening: 'Happening now',
     templates: {
       outing: 'Outing',
       trip: 'Trip',

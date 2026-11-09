@@ -1,6 +1,11 @@
 # Supabase setup for Penny
 
-1. **SQL Editor** → run `schema.sql` (tables + Row Level Security).
+1. **SQL Editor** → run `schema.sql` (tables + Row Level Security + the shared-plan function).
+   It starts by dropping the tables, so only run it on a new database.
+   **Already have data?** Run the files in `migrations/` instead, oldest first. They only
+   add what's missing and keep your data. `2026-11-09-trip-plans.sql` adds the trip
+   itinerary, packing list, deposits, people and share links; until it has run, changes
+   to plans can't be saved.
 
 2. **Authentication → URL Configuration**
    - **Site URL**: your live address, e.g. `https://penny-xxx.vercel.app`

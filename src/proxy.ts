@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { SUPABASE_KEY, SUPABASE_URL } from '@/lib/supabase/env';
 
 /** Pages anyone can open without signing in. */
-const PUBLIC_PATHS = ['/login', '/auth'];
+const PUBLIC_PATHS = ['/login', '/auth', '/share'];
 
 /**
  * Keeps the Supabase session cookie fresh on every request and sends signed-out

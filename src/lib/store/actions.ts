@@ -22,6 +22,9 @@ import type {
   MonthPlanInput,
   RecurringInput,
   RecurringRule,
+  PlanActivity,
+  PlanActivityInput,
+  PlanChecklistItem,
   SpendPlan,
   SpendPlanInput,
   SpendPlanItem,
@@ -405,6 +408,7 @@ function cleanSpendPlanInput(input: SpendPlanInput) {
     startDate: input.startDate,
     endDate: input.endDate && input.endDate > input.startDate ? input.endDate : undefined,
     note: input.note?.trim() || undefined,
+    people: Math.min(99, Math.max(1, Math.round(input.people) || 1)),
     items: input.items
       // Drop blank rows, but never an extra that already has an amount.
       .filter((item) => item.name.trim() || (item.actual ?? 0) > 0)
@@ -413,6 +417,7 @@ function cleanSpendPlanInput(input: SpendPlanInput) {
         id: item.id ?? `spi-${crypto.randomUUID()}`,
         name: item.name.trim(),
         estimate: item.isExtra ? 0 : Math.max(0, item.estimate),
+        deposit: Math.max(0, item.deposit ?? 0),
       })),
   };
 }
@@ -421,6 +426,8 @@ export function newSpendPlan(input: SpendPlanInput): SpendPlan {
   return {
     id: `sp-${crypto.randomUUID()}`,
     ...cleanSpendPlanInput(input),
+    activities: [],
+    checklist: [],
     status: 'planning',
     postedCount: 0,
     createdAt: now(),
@@ -463,6 +470,153 @@ export function reopenSpendPlan(s: AppState, id: string): AppState {
     ...s,
     spendPlans: s.spendPlans.map((p) => (p.id === id ? { ...p, status: 'planning' } : p)),
   };
+}
+
+function patchPlan(s: AppState, id: string, fn: (plan: SpendPlan) => SpendPlan): AppState {
+  return { ...s, spendPlans: s.spendPlans.map((p) => (p.id === id ? fn(p) : p)) };
+}
+
+const cleanTime = (time?: string) => (/^\d{2}:\d{2}$/.test(time ?? '') ? time : undefined);
+const cleanCoord = (value: number | undefined, limit: number) =>
+  value !== undefined && Number.isFinite(value) && Math.abs(value) <= limit
+    ? Math.round(value * 1e6) / 1e6
+    : undefined;
+
+/** Both halves of a position, rounded, or neither. */
+function cleanPoint(lat?: number, lng?: number) {
+  const a = cleanCoord(lat, 90);
+  const b = cleanCoord(lng, 180);
+  return a !== undefined && b !== undefined ? { lat: a, lng: b } : undefined;
+}
+
+function cleanActivityInput(input: PlanActivityInput) {
+  const point = cleanPoint(input.lat, input.lng);
+  const isMove = input.kind === 'move';
+  const fromPoint = isMove ? cleanPoint(input.fromLat, input.fromLng) : undefined;
+  // A stay checks out on a later day; a trip arrives the same day or later.
+  const hasEnd =
+    Boolean(input.endDate) &&
+    (input.kind === 'stay'
+      ? (input.endDate as string) > input.date
+      : isMove && (input.endDate as string) >= input.date);
+  return {
+    date: input.date,
+    time: cleanTime(input.time),
+    title: input.title.trim(),
+    place: input.place?.trim() || undefined,
+    mapUrl: input.mapUrl?.trim() || undefined,
+    lat: point?.lat,
+    lng: point?.lng,
+    from: (isMove && input.from?.trim()) || undefined,
+    fromMapUrl: (isMove && input.fromMapUrl?.trim()) || undefined,
+    fromLat: fromPoint?.lat,
+    fromLng: fromPoint?.lng,
+    note: input.note?.trim() || undefined,
+    kind: input.kind,
+    endDate: hasEnd ? input.endDate : undefined,
+    endTime: hasEnd ? cleanTime(input.endTime) : undefined,
+  };
+}
+
+export function newPlanActivity(input: PlanActivityInput): PlanActivity {
+  return { id: `pa-${crypto.randomUUID()}`, ...cleanActivityInput(input), done: false };
+}
+
+export function addPlanActivity(s: AppState, planId: string, activity: PlanActivity): AppState {
+  return patchPlan(s, planId, (p) => ({ ...p, activities: [...p.activities, activity] }));
+}
+
+export function updatePlanActivity(
+  s: AppState,
+  planId: string,
+  activityId: string,
+  input: PlanActivityInput,
+): AppState {
+  return patchPlan(s, planId, (p) => ({
+    ...p,
+    activities: p.activities.map((a) =>
+      a.id === activityId ? { ...a, ...cleanActivityInput(input) } : a,
+    ),
+  }));
+}
+
+/** Ticks a stop off; `end` ticks the check-out of a stay or the arrival of a trip. */
+export function togglePlanActivity(
+  s: AppState,
+  planId: string,
+  activityId: string,
+  part: 'main' | 'end' = 'main',
+): AppState {
+  return patchPlan(s, planId, (p) => ({
+    ...p,
+    activities: p.activities.map((a) => {
+      if (a.id !== activityId) return a;
+      return part === 'end' ? { ...a, endDone: !a.endDone } : { ...a, done: !a.done };
+    }),
+  }));
+}
+
+/**
+ * Puts some stops in a new order without touching the day's schedule: the time
+ * slots they had (earliest first, untimed last) are handed out again in the new
+ * order, and their places in the list follow so untimed ones sort the same way.
+ */
+export function reorderPlanStops(s: AppState, planId: string, orderedIds: string[]): AppState {
+  return patchPlan(s, planId, (p) => {
+    const moving = new Set(orderedIds);
+    const byId = new Map(p.activities.filter((a) => moving.has(a.id)).map((a) => [a.id, a]));
+    if (byId.size !== orderedIds.length) return p;
+    const slots = [...byId.values()]
+      .map((a) => a.time)
+      .sort((a, b) => (a && b ? a.localeCompare(b) : a ? -1 : b ? 1 : 0));
+    const reordered = orderedIds.map((id, i) => ({ ...byId.get(id)!, time: slots[i] }));
+    let next = 0;
+    return {
+      ...p,
+      activities: p.activities.map((a) => (moving.has(a.id) ? reordered[next++] : a)),
+    };
+  });
+}
+
+export function removePlanActivity(s: AppState, planId: string, activityId: string): AppState {
+  return patchPlan(s, planId, (p) => ({
+    ...p,
+    activities: p.activities.filter((a) => a.id !== activityId),
+  }));
+}
+
+export function newChecklistItem(text: string): PlanChecklistItem {
+  return { id: `pc-${crypto.randomUUID()}`, text: text.trim(), done: false };
+}
+
+export function addChecklistItem(s: AppState, planId: string, item: PlanChecklistItem): AppState {
+  if (!item.text) return s;
+  return patchPlan(s, planId, (p) => ({ ...p, checklist: [...p.checklist, item] }));
+}
+
+export function toggleChecklistItem(s: AppState, planId: string, itemId: string): AppState {
+  return patchPlan(s, planId, (p) => ({
+    ...p,
+    checklist: p.checklist.map((c) => (c.id === itemId ? { ...c, done: !c.done } : c)),
+  }));
+}
+
+export function removeChecklistItem(s: AppState, planId: string, itemId: string): AppState {
+  return patchPlan(s, planId, (p) => ({
+    ...p,
+    checklist: p.checklist.filter((c) => c.id !== itemId),
+  }));
+}
+
+/** Hard-to-guess id for a public link: 128 random bits, URL-safe. */
+export function newShareId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Turns the public link on (with a new id) or off (undefined). */
+export function setPlanShare(s: AppState, planId: string, shareId: string | undefined): AppState {
+  return patchPlan(s, planId, (p) => ({ ...p, shareId }));
 }
 
 /** Removes the plan only; transactions already posted from it stay. */

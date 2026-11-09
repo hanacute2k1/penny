@@ -1026,3 +1026,48 @@ html[data-theme='dark'] .login-card::before {
     opacity: 0.6;
   }
 }
+
+/* Route map (Leaflet): numbered pins in the stop's kind colour, tiles dimmed in dark mode. */
+.route-map {
+  background: var(--paper);
+  font: inherit;
+}
+
+.route-map .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--surface-solid) 85%, transparent);
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.route-map .leaflet-control-attribution a {
+  color: var(--ink-soft);
+}
+
+.route-map .leaflet-bar a {
+  background: var(--surface-solid);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+html.dark .route-map .leaflet-tile-pane,
+html[data-theme='dark'] .route-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}
+
+.route-pin {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+}
+
+.route-pin[data-focus='true'] {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}

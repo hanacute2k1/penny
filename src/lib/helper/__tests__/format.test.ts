@@ -25,8 +25,24 @@ describe('summarizeSpendPlan', () => {
   it('compares only the items that have been filled in', () => {
     const summary = summarizeSpendPlan({
       items: [
-        { id: '1', name: 'A', categoryId: 'c', estimate: 100, actual: 120, isExtra: false },
-        { id: '2', name: 'B', categoryId: 'c', estimate: 80, actual: null, isExtra: false },
+        {
+          id: '1',
+          name: 'A',
+          categoryId: 'c',
+          deposit: 0,
+          estimate: 100,
+          actual: 120,
+          isExtra: false,
+        },
+        {
+          id: '2',
+          name: 'B',
+          categoryId: 'c',
+          deposit: 0,
+          estimate: 80,
+          actual: null,
+          isExtra: false,
+        },
       ],
     });
     expect(summary.diff).toBe(-20);

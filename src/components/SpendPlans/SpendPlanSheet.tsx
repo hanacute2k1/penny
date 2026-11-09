@@ -38,12 +38,13 @@ export function SpendPlanSheet({ open, ...props }: SheetProps & { open: boolean 
 }
 
 function SheetBody({ onClose, initial, categories, onSave }: SheetProps) {
-  const { t, locale } = useI18n();
+  const { t, tx, locale } = useI18n();
   const [title, setTitle] = useState(initial?.title ?? '');
   const [icon, setIcon] = useState<string>(initial?.icon ?? ICON_CHOICES.plan[0]);
   const [startDate, setStartDate] = useState(initial?.startDate ?? inAWeek);
   const [endDate, setEndDate] = useState(initial?.endDate ?? '');
   const [note, setNote] = useState(initial?.note ?? '');
+  const [people, setPeople] = useState(initial?.people ?? 1);
   const [items, setItems] = useState<DraftItem[]>(
     () => initial?.items.map((item) => ({ ...item })) ?? [],
   );
@@ -72,6 +73,7 @@ function SheetBody({ onClose, initial, categories, onSave }: SheetProps) {
         name: t.spendPlans.templateItems[item.key],
         categoryId: validCategory(item.categoryId),
         estimate: 0,
+        deposit: 0,
         actual: null,
         isExtra: false,
       })),
@@ -89,6 +91,7 @@ function SheetBody({ onClose, initial, categories, onSave }: SheetProps) {
         name: '',
         categoryId: validCategory(FALLBACK_CATEGORY),
         estimate: 0,
+        deposit: 0,
         actual: null,
         isExtra: false,
       },
@@ -97,7 +100,7 @@ function SheetBody({ onClose, initial, categories, onSave }: SheetProps) {
 
   function submit() {
     if (!canSave) return;
-    onSave({ title, icon, startDate, endDate: endDate || undefined, note, items });
+    onSave({ title, icon, startDate, endDate: endDate || undefined, note, people, items });
     onClose();
   }
 
@@ -165,6 +168,32 @@ function SheetBody({ onClose, initial, categories, onSave }: SheetProps) {
             className={fieldClass}
           />
         </label>
+      </div>
+
+      <div className="mb-5">
+        <p className="field-label mb-1.5">{t.spendPlans.people}</p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPeople((n) => Math.max(1, n - 1))}
+            disabled={people <= 1}
+            aria-label="−"
+            className="tap grid h-12 w-12 place-items-center rounded-2xl border border-line bg-paper disabled:opacity-40"
+          >
+            <Icon name="minus" size={18} />
+          </button>
+          <span className="num min-w-24 text-center text-lg font-semibold" aria-live="polite">
+            {tx(t.spendPlans.peopleCount, { count: people })}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPeople((n) => Math.min(99, n + 1))}
+            aria-label="+"
+            className="tap grid h-12 w-12 place-items-center rounded-2xl border border-line bg-paper"
+          >
+            <Icon name="plus" size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="mb-5">

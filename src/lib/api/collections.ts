@@ -97,6 +97,7 @@ const spendPlan = z.object({
   startDate: isoDate,
   endDate: isoDate.optional(),
   note: text(300).optional(),
+  people: z.number().int().min(1).max(99).default(1),
   items: z
     .array(
       z.object({
@@ -104,11 +105,51 @@ const spendPlan = z.object({
         name: text(120),
         categoryId: id,
         estimate: money,
+        deposit: money.default(0),
         actual: money.nullable(),
         isExtra: z.boolean(),
       }),
     )
     .max(200),
+  activities: z
+    .array(
+      z.object({
+        id,
+        date: isoDate,
+        time: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional(),
+        title: text(160),
+        place: text(200).optional(),
+        mapUrl: z.string().url().max(2000).optional(),
+        lat: z.number().min(-90).max(90).optional(),
+        lng: z.number().min(-180).max(180).optional(),
+        note: text(500).optional(),
+        kind: z.enum(['move', 'stay', 'food', 'see', 'other']),
+        from: text(200).optional(),
+        fromMapUrl: z.string().url().max(2000).optional(),
+        fromLat: z.number().min(-90).max(90).optional(),
+        fromLng: z.number().min(-180).max(180).optional(),
+        endDate: isoDate.optional(),
+        endTime: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional(),
+        done: z.boolean(),
+        endDone: z.boolean().optional(),
+      }),
+    )
+    .max(500)
+    .default([]),
+  checklist: z
+    .array(z.object({ id, text: text(160), done: z.boolean() }))
+    .max(300)
+    .default([]),
+  shareId: z
+    .string()
+    .regex(/^[a-f0-9]{32}$/)
+    .optional(),
   status: z.enum(['planning', 'done']),
   postedCount: z.number().int().nonnegative(),
   createdAt: timestamp,

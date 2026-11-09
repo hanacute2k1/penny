@@ -30,6 +30,7 @@ import type {
   MonthPlanInput,
   MonthView,
   RecurringInput,
+  PlanActivityInput,
   SpendPlanInput,
   SpendPlanItem,
   TransactionInput,
@@ -90,6 +91,18 @@ type StoreActions = {
   reopenSpendPlan: (id: string) => void;
   /** Removes the plan only; transactions already posted from it stay. */
   deleteSpendPlan: (id: string) => void;
+  addPlanActivity: (planId: string, input: PlanActivityInput) => void;
+  updatePlanActivity: (planId: string, activityId: string, input: PlanActivityInput) => void;
+  togglePlanActivity: (planId: string, activityId: string, part?: 'main' | 'end') => void;
+  /** New order for some stops; they swap time slots, the day's schedule stays. */
+  reorderPlanStops: (planId: string, orderedIds: string[]) => void;
+  removePlanActivity: (planId: string, activityId: string) => void;
+  addChecklistItem: (planId: string, text: string) => void;
+  toggleChecklistItem: (planId: string, itemId: string) => void;
+  removeChecklistItem: (planId: string, itemId: string) => void;
+  /** Turns the public read-only link on and returns its id. */
+  sharePlan: (planId: string) => string;
+  unsharePlan: (planId: string) => void;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -123,7 +136,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [legacy, setLegacy] = useState<AppState | null>(null);
   const [loadNonce, setLoadNonce] = useState(0);
   const pathname = usePathname();
-  const signedOutPage = pathname.startsWith('/login') || pathname.startsWith('/auth');
+  // Pages that work without an account (a shared plan is opened by anyone with the link).
+  const signedOutPage =
+    pathname.startsWith('/login') || pathname.startsWith('/auth') || pathname.startsWith('/share');
 
   /** Last state the server is known to have; edits are diffed against it. */
   const confirmed = useRef<AppState>(EMPTY_STATE);
@@ -286,6 +301,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       settleSpendPlan: run(actions.settleSpendPlan),
       reopenSpendPlan: run(actions.reopenSpendPlan),
       deleteSpendPlan: run(actions.deleteSpendPlan),
+      addPlanActivity: (planId, input) => {
+        const activity = actions.newPlanActivity(input);
+        setState((s) => actions.addPlanActivity(s, planId, activity));
+      },
+      updatePlanActivity: run(actions.updatePlanActivity),
+      togglePlanActivity: run(actions.togglePlanActivity),
+      reorderPlanStops: run(actions.reorderPlanStops),
+      removePlanActivity: run(actions.removePlanActivity),
+      addChecklistItem: (planId, text) => {
+        const item = actions.newChecklistItem(text);
+        setState((s) => actions.addChecklistItem(s, planId, item));
+      },
+      toggleChecklistItem: run(actions.toggleChecklistItem),
+      removeChecklistItem: run(actions.removeChecklistItem),
+      sharePlan: (planId) => {
+        const shareId = actions.newShareId();
+        setState((s) => actions.setPlanShare(s, planId, shareId));
+        return shareId;
+      },
+      unsharePlan: (planId) => setState((s) => actions.setPlanShare(s, planId, undefined)),
     };
   }, []);
 

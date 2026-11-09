@@ -14,6 +14,7 @@ import type {
   TransportEntry,
   TransportMeter,
 } from '@/lib/type';
+import { normalizeSpendPlan } from '@/lib/helper/spendPlans';
 import { buildSeedTransportMeters, createInitialState, DEFAULT_CATEGORIES } from './seed';
 
 export type AppState = {
@@ -85,7 +86,7 @@ export function normalizeState(raw: Partial<AppState> | null | undefined): AppSt
     monthPlans: raw.monthPlans ?? [],
     transportMeters: raw.transportMeters?.length ? raw.transportMeters : fresh.transportMeters,
     transportEntries: (raw.transportEntries ?? []).map(normalizeTransportEntry),
-    spendPlans: raw.spendPlans ?? fresh.spendPlans,
+    spendPlans: (raw.spendPlans ?? fresh.spendPlans).map(normalizeSpendPlan),
   };
 }
 

@@ -115,16 +115,18 @@ describe('spend plans', () => {
       icon: '⛰️',
       startDate: '2026-11-20',
       endDate: '2026-11-19',
+      people: 2,
       items: [
         {
           name: 'Xe',
           categoryId: 'c-transport',
           estimate: 500_000,
+          deposit: 100_000,
           actual: 450_000,
           isExtra: false,
         },
-        { name: '', categoryId: 'c-other', estimate: 0, actual: 20_000, isExtra: true },
-        { name: '', categoryId: 'c-other', estimate: 5, actual: null, isExtra: false },
+        { name: '', categoryId: 'c-other', estimate: 0, deposit: 0, actual: 20_000, isExtra: true },
+        { name: '', categoryId: 'c-other', estimate: 5, deposit: 0, actual: null, isExtra: false },
       ],
     });
 
@@ -142,5 +144,114 @@ describe('spend plans', () => {
     s = actions.settleSpendPlan(s, p.id);
     expect(s.transactions.filter((t) => t.spendPlanId === p.id)).toHaveLength(2);
     expect(s.spendPlans[0]).toMatchObject({ status: 'done', postedCount: 2 });
+  });
+
+  it('adds, edits, ticks and removes itinerary entries', () => {
+    const p = plan();
+    const a = actions.newPlanActivity({
+      date: '2026-11-20',
+      time: '9:00',
+      title: ' Chợ ',
+      place: '  ',
+      kind: 'food',
+    });
+    expect(a).toMatchObject({ title: 'Chợ', time: undefined, place: undefined, done: false });
+    let s = actions.addPlanActivity(actions.addSpendPlan(base(), p), p.id, a);
+    s = actions.updatePlanActivity(s, p.id, a.id, { ...a, time: '07:30' });
+    s = actions.togglePlanActivity(s, p.id, a.id);
+    expect(s.spendPlans[0].activities[0]).toMatchObject({ time: '07:30', done: true });
+    s = actions.removePlanActivity(s, p.id, a.id);
+    expect(s.spendPlans[0].activities).toHaveLength(0);
+  });
+
+  it('keeps a check-out only on stays after check-in, ticked off on its own', () => {
+    const p = plan();
+    const stay = actions.newPlanActivity({
+      date: '2026-11-20',
+      time: '14:00',
+      title: 'Homestay',
+      kind: 'stay',
+      endDate: '2026-11-22',
+      endTime: '12:00',
+      mapUrl: ' https://maps.app.goo.gl/x ',
+      lat: 11.94041234567,
+      lng: 108.4583,
+    });
+    expect(stay).toMatchObject({
+      endDate: '2026-11-22',
+      endTime: '12:00',
+      mapUrl: 'https://maps.app.goo.gl/x',
+      lat: 11.940412,
+    });
+    expect(actions.newPlanActivity({ ...stay, kind: 'food' }).endDate).toBeUndefined();
+    expect(actions.newPlanActivity({ ...stay, endDate: '2026-11-20' }).endDate).toBeUndefined();
+    // A position needs both halves.
+    expect(actions.newPlanActivity({ ...stay, lng: undefined }).lat).toBeUndefined();
+
+    let s = actions.addPlanActivity(actions.addSpendPlan(base(), p), p.id, stay);
+    s = actions.togglePlanActivity(s, p.id, stay.id, 'end');
+    expect(s.spendPlans[0].activities[0]).toMatchObject({ done: false, endDone: true });
+  });
+
+  it('keeps departure fields only on rides, arriving the same day or later', () => {
+    const ride = actions.newPlanActivity({
+      date: '2026-11-20',
+      time: '00:30',
+      title: 'Xe',
+      kind: 'move',
+      from: ' Bến xe Miền Đông ',
+      fromLat: 10.8794,
+      fromLng: 106.8163,
+      endDate: '2026-11-20',
+      endTime: '06:30',
+    });
+    expect(ride).toMatchObject({
+      from: 'Bến xe Miền Đông',
+      fromLat: 10.8794,
+      endDate: '2026-11-20',
+      endTime: '06:30',
+    });
+    expect(actions.newPlanActivity({ ...ride, endDate: '2026-11-19' }).endDate).toBeUndefined();
+    const food = actions.newPlanActivity({ ...ride, kind: 'food' });
+    expect(food).toMatchObject({ from: undefined, fromLat: undefined, endDate: undefined });
+  });
+
+  it('reorders stops by handing their time slots out again', () => {
+    const p = plan();
+    const at = (title: string, time?: string) =>
+      actions.newPlanActivity({ date: '2026-11-20', time, title, kind: 'see' });
+    const a = at('A', '08:00');
+    const b = at('B', '10:00');
+    const c = at('C', '13:00');
+    const other = at('Other', '09:00');
+    let s = actions.addSpendPlan(base(), p);
+    for (const x of [a, other, b, c]) s = actions.addPlanActivity(s, p.id, x);
+    s = actions.reorderPlanStops(s, p.id, [a.id, c.id, b.id]);
+    expect(s.spendPlans[0].activities.map((x) => [x.title, x.time])).toEqual([
+      ['A', '08:00'],
+      ['Other', '09:00'],
+      ['C', '10:00'],
+      ['B', '13:00'],
+    ]);
+    // Unknown ids leave the plan alone.
+    expect(actions.reorderPlanStops(s, p.id, ['nope', a.id])).toEqual(s);
+  });
+
+  it('ignores blank checklist entries', () => {
+    const p = plan();
+    let s = actions.addSpendPlan(base(), p);
+    s = actions.addChecklistItem(s, p.id, actions.newChecklistItem('   '));
+    s = actions.addChecklistItem(s, p.id, actions.newChecklistItem(' Áo ấm '));
+    expect(s.spendPlans[0].checklist).toEqual([expect.objectContaining({ text: 'Áo ấm' })]);
+  });
+
+  it('share ids are 32 hex characters and can be turned off', () => {
+    const id = actions.newShareId();
+    expect(id).toMatch(/^[a-f0-9]{32}$/);
+    const p = plan();
+    let s = actions.setPlanShare(actions.addSpendPlan(base(), p), p.id, id);
+    expect(s.spendPlans[0].shareId).toBe(id);
+    s = actions.setPlanShare(s, p.id, undefined);
+    expect(s.spendPlans[0].shareId).toBeUndefined();
   });
 });

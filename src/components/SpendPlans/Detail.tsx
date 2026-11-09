@@ -1,31 +1,37 @@
 'use client';
 
-import { LoadingText } from '@/components/Base/LoadingText';
+import { CalendarDays, Share2, Users } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useStore } from '@/contexts/StoreContext';
+import { ConfirmDialog } from '@/components/Base/ConfirmDialog';
+import { Icon } from '@/components/Base/Icon';
+import { ItemIcon } from '@/components/Base/ItemIcon';
+import { LoadingText } from '@/components/Base/LoadingText';
+import { Segmented } from '@/components/Base/Segmented';
 import { useI18n } from '@/contexts/I18nContext';
-import { formatVnd } from '@/lib/helper/format';
+import { useStore } from '@/contexts/StoreContext';
 import { todayIso } from '@/lib/helper/date';
 import {
+  countdownLabel,
+  daysUntilPlan,
   formatPlanDates,
-  itemDiff,
+  planDays,
   spendPlanPhase,
   summarizeSpendPlan,
 } from '@/lib/helper/spendPlans';
-import { AmountInput } from '@/components/Base/AmountInput';
-import { ConfirmDialog } from '@/components/Base/ConfirmDialog';
-import { Icon } from '@/components/Base/Icon';
-import { ProgressBar } from '@/components/Base/ProgressBar';
-import { CategorySelect } from './shared';
-import { DiffLabel } from './shared';
+import type { PlanActivity, PlanActivityInput } from '@/lib/type';
+import { ActivitySheet } from './ActivitySheet';
+import { Checklist } from './Checklist';
+import { Costs } from './Costs';
+import { Itinerary } from './Itinerary';
+import { RouteSheet } from './RouteSheet';
+import { ShareSheet } from './ShareSheet';
 import { SpendPlanSheet } from './SpendPlanSheet';
-import type { SpendPlanItem } from '@/lib/type';
-import { ItemIcon } from '@/components/Base/ItemIcon';
 
-const EXTRA_CATEGORY = 'c-other';
+type Tab = 'itinerary' | 'costs' | 'prepare';
 
+/** One trip: header with dates and people, then itinerary / costs / packing tabs. */
 export function SpendPlanDetailView() {
   const { planId } = useParams<{ planId: string }>();
   const router = useRouter();
@@ -35,27 +41,32 @@ export function SpendPlanDetailView() {
     spendPlans,
     categories,
     updateSpendPlan,
-    setSpendPlanItems,
-    settleSpendPlan,
-    reopenSpendPlan,
     deleteSpendPlan,
+    addPlanActivity,
+    updatePlanActivity,
+    togglePlanActivity,
+    removePlanActivity,
+    reorderPlanStops,
+    addChecklistItem,
+    toggleChecklistItem,
+    removeChecklistItem,
   } = useStore();
+  const [tab, setTab] = useState<Tab>('itinerary');
   const [editOpen, setEditOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** Open activity form: a day to add to, or an existing stop to edit. */
+  const [activityForm, setActivityForm] = useState<{
+    date: string;
+    prefill?: Partial<PlanActivityInput>;
+    activity: PlanActivity | null;
+  } | null>(null);
+  /** Day whose route is open on the map. */
+  const [routeDay, setRouteDay] = useState<string | null>(null);
 
   const plan = spendPlans.find((p) => p.id === planId);
-  const expenseCats = useMemo(
-    () =>
-      categories
-        .filter((c) => c.type === 'expense' && !c.isArchived)
-        .sort((a, b) => a.sortOrder - b.sortOrder),
-    [categories],
-  );
-  const catMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
-  if (!ready) {
-    return <LoadingText />;
-  }
+  if (!ready) return <LoadingText />;
 
   if (!plan) {
     return (
@@ -68,22 +79,18 @@ export function SpendPlanDetailView() {
     );
   }
 
-  const summary = summarizeSpendPlan(plan);
+  const days = planDays(plan);
   const phase = spendPlanPhase(plan, todayIso());
-  const planned = plan.items.filter((item) => !item.isExtra);
-  const extras = plan.items.filter((item) => item.isExtra);
-  const money = (value: number) => formatVnd(value, { locale });
-
-  const setItems = (items: SpendPlanItem[]) => setSpendPlanItems(plan.id, items);
-  const patchItem = (id: string, patch: Partial<SpendPlanItem>) =>
-    setItems(plan.items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
-
-  /* Card tint: mint when under plan, pink when over — only once real numbers exist. */
-  const tint = summary.hasActuals
-    ? `color-mix(in srgb, var(--chart-${summary.diff >= 0 ? 3 : 2}) var(--hero-mix), var(--surface))`
-    : undefined;
-  const usedPercent =
-    summary.estimate > 0 ? Math.round((summary.actual / summary.estimate) * 100) : 0;
+  const until = daysUntilPlan(plan);
+  const lastDay = days[days.length - 1];
+  const happening = until <= 0 && todayIso() <= lastDay && plan.status !== 'done';
+  /** Asks for the real totals only once the last day is over. */
+  const tripOver = phase === 'review' && todayIso() > lastDay;
+  const status = happening
+    ? t.spendPlans.happening
+    : phase === 'upcoming'
+      ? countdownLabel(until, t, tx)
+      : null;
 
   return (
     <>
@@ -101,228 +108,132 @@ export function SpendPlanDetailView() {
           </span>
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-semibold tracking-tight">{plan.title}</h1>
-            <p className="text-[0.9375rem] text-ink-soft">{formatPlanDates(plan, locale)}</p>
-            {plan.note ? <p className="mt-0.5 text-sm text-ink-muted">{plan.note}</p> : null}
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9375rem] text-ink-soft">
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays size={16} aria-hidden="true" />
+                {formatPlanDates(plan, locale)}
+                {days.length > 1 ? ` · ${tx(t.spendPlans.dayCount, { count: days.length })}` : ''}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Users size={16} aria-hidden="true" />
+                {tx(t.spendPlans.peopleCount, { count: plan.people })}
+              </span>
+            </p>
+            {status ? (
+              <span className="mt-1.5 inline-block rounded-full bg-chart-4/50 px-2.5 py-0.5 text-sm font-semibold">
+                {status}
+              </span>
+            ) : null}
+            {plan.note ? <p className="mt-1 text-sm text-ink-muted">{plan.note}</p> : null}
           </div>
-          <button
-            type="button"
-            onClick={() => setEditOpen(true)}
-            aria-label={t.spendPlans.edit}
-            title={t.spendPlans.edit}
-            className="tap grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line bg-surface text-ink-soft hover:text-ink"
-          >
-            <Icon name="edit" size={20} />
-          </button>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={() => setShareOpen(true)}
+              aria-label={t.spendPlans.share}
+              title={t.spendPlans.share}
+              className={`tap grid h-11 w-11 place-items-center rounded-full border ${
+                plan.shareId
+                  ? 'border-accent/40 bg-accent-soft text-accent-deep'
+                  : 'border-line bg-surface text-ink-soft hover:text-ink'
+              }`}
+            >
+              <Share2 size={19} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              aria-label={t.spendPlans.edit}
+              title={t.spendPlans.edit}
+              className="tap grid h-11 w-11 place-items-center rounded-full border border-line bg-surface text-ink-soft hover:text-ink"
+            >
+              <Icon name="edit" size={20} />
+            </button>
+          </div>
         </header>
 
-        <section className="panel p-5 md:p-6" style={tint ? { background: tint } : undefined}>
-          {summary.hasActuals ? (
-            <>
-              <p className="eyebrow">{t.spendPlans.diff}</p>
-              <p
-                className={`num mt-1 text-[min(2.25rem,10vw)] font-semibold leading-tight ${
-                  summary.diff < 0 ? 'text-coral' : summary.diff > 0 ? 'text-income' : ''
-                }`}
-              >
-                {summary.diff > 0 ? '+' : summary.diff < 0 ? '−' : ''}
-                {money(Math.abs(summary.diff))}
-              </p>
-              <div className="mt-2">
-                <DiffLabel diff={summary.diff} size="md" />
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="eyebrow">{t.spendPlans.estimate}</p>
-              <p className="num mt-1 text-[min(2.25rem,10vw)] font-semibold leading-tight">
-                {money(summary.estimate)}
-              </p>
-            </>
-          )}
-
-          <div className="mt-4">
-            <ProgressBar percent={usedPercent} />
-          </div>
-
-          <dl className="mt-4 grid grid-cols-3 gap-2">
-            {[
-              { label: t.spendPlans.estimate, value: summary.estimate },
-              { label: t.spendPlans.actual, value: summary.actual },
-              { label: t.spendPlans.extras, value: summary.extras },
-            ].map((stat) => (
-              <div key={stat.label} className="min-w-0 rounded-2xl bg-surface/70 px-3 py-2.5">
-                <dt className="truncate text-sm text-ink-soft">{stat.label}</dt>
-                <dd className="num mt-0.5 truncate font-semibold">
-                  {formatVnd(stat.value, { compact: true, locale })}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <p className="mt-3 text-sm text-ink-muted">
-            {tx(t.spendPlans.checked, { checked: summary.checked, planned: summary.planned })}
-          </p>
-        </section>
-
-        {phase === 'review' && !summary.hasActuals ? (
-          <p className="rounded-2xl bg-chart-4/40 px-4 py-3 text-[0.9375rem] font-medium">
-            {t.spendPlans.reviewHint}
-          </p>
+        {tripOver && !summarizeSpendPlan(plan).hasActuals && tab !== 'costs' ? (
+          <button
+            type="button"
+            onClick={() => setTab('costs')}
+            className="tap block w-full rounded-2xl bg-chart-4/40 px-4 py-3 text-left text-[0.9375rem] font-medium"
+          >
+            {t.spendPlans.reviewHint} ›
+          </button>
         ) : null}
 
-        <section className="panel p-3 md:p-4">
-          <div className="flex items-center justify-between px-2 pb-1 pt-1">
-            <h2 className="section-title">{t.spendPlans.items}</h2>
-            <span className="text-sm text-ink-muted">{t.spendPlans.actual}</span>
-          </div>
-          <ul className="divide-y divide-line">
-            {planned.map((item) => {
-              const diff = itemDiff(item);
-              return (
-                <li key={item.id} className="flex items-center gap-3 px-2 py-3">
-                  <CategorySelect
-                    value={item.categoryId}
-                    categories={expenseCats}
-                    onChange={(categoryId) => patchItem(item.id, { categoryId })}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{item.name}</p>
-                    <p className="num text-sm text-ink-muted">
-                      {t.spendPlans.estimate} {formatVnd(item.estimate, { compact: true, locale })}
-                    </p>
-                    {diff !== null && diff !== 0 ? (
-                      <div className="mt-1">
-                        <DiffLabel diff={diff} />
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="flex min-h-11 w-32 shrink-0 items-center rounded-xl border border-line bg-paper px-3 focus-within:border-ink">
-                    <AmountInput
-                      value={item.actual}
-                      onChange={(actual) => patchItem(item.id, { actual })}
-                      ariaLabel={`${t.spendPlans.actual} ${item.name}`}
-                      placeholder={t.spendPlans.notFilled}
-                      className="w-full"
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+        <Segmented
+          value={tab}
+          onChange={setTab}
+          ariaLabel={plan.title}
+          options={[
+            { value: 'itinerary', label: t.spendPlans.tabItinerary },
+            { value: 'costs', label: t.spendPlans.tabCosts },
+            { value: 'prepare', label: t.spendPlans.tabPrepare },
+          ]}
+        />
 
-        <section className="panel p-3 md:p-4">
-          <div className="px-2 pb-2 pt-1">
-            <h2 className="section-title">{t.spendPlans.extras}</h2>
-            <p className="text-sm text-ink-muted">{t.spendPlans.extrasHint}</p>
-          </div>
-          {extras.length ? (
-            <ul className="divide-y divide-line">
-              {extras.map((item) => (
-                <li key={item.id} className="flex items-center gap-2 px-2 py-3">
-                  <CategorySelect
-                    value={item.categoryId}
-                    categories={expenseCats}
-                    onChange={(categoryId) => patchItem(item.id, { categoryId })}
-                  />
-                  <input
-                    value={item.name}
-                    onChange={(e) => patchItem(item.id, { name: e.target.value })}
-                    placeholder={t.spendPlans.extraPlaceholder}
-                    aria-label={t.spendPlans.extraPlaceholder}
-                    className="min-h-11 min-w-0 flex-1 rounded-xl border border-line bg-paper px-3 outline-none placeholder:text-ink-muted focus:border-ink"
-                  />
-                  <div className="flex min-h-11 w-28 shrink-0 items-center rounded-xl border border-line bg-paper px-3 focus-within:border-ink">
-                    <AmountInput
-                      value={item.actual}
-                      onChange={(actual) => patchItem(item.id, { actual })}
-                      ariaLabel={`${t.spendPlans.actual} ${item.name}`}
-                      className="w-full"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setItems(plan.items.filter((i) => i.id !== item.id))}
-                    aria-label={t.spendPlans.removeItem}
-                    title={t.spendPlans.removeItem}
-                    className="tap grid h-11 w-9 shrink-0 place-items-center rounded-xl text-ink-muted hover:text-coral"
-                  >
-                    <Icon name="close" size={18} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <button
-            type="button"
-            onClick={() =>
-              setItems([
-                ...plan.items,
-                {
-                  id: `spi-${crypto.randomUUID()}`,
-                  name: '',
-                  categoryId: catMap.has(EXTRA_CATEGORY)
-                    ? EXTRA_CATEGORY
-                    : (expenseCats[0]?.id ?? EXTRA_CATEGORY),
-                  estimate: 0,
-                  actual: null,
-                  isExtra: true,
-                },
-              ])
-            }
-            className="tap mx-2 mb-1 mt-2 flex min-h-11 w-[calc(100%-1rem)] items-center justify-center gap-1.5 rounded-xl border border-dashed border-line text-[0.9375rem] font-semibold text-ink-soft hover:text-ink"
-          >
-            <Icon name="plus" size={18} />
-            {t.spendPlans.addExtra}
-          </button>
-        </section>
+        {tab === 'itinerary' ? (
+          <Itinerary
+            plan={plan}
+            onAdd={(date, prefill) => setActivityForm({ date, prefill, activity: null })}
+            onEdit={(activity) => setActivityForm({ date: activity.date, activity })}
+            onToggle={(id, part) => togglePlanActivity(plan.id, id, part)}
+            onRoute={setRouteDay}
+          />
+        ) : tab === 'costs' ? (
+          <Costs plan={plan} />
+        ) : (
+          <Checklist
+            items={plan.checklist}
+            onAdd={(text) => addChecklistItem(plan.id, text)}
+            onToggle={(id) => toggleChecklistItem(plan.id, id)}
+            onRemove={(id) => removeChecklistItem(plan.id, id)}
+          />
+        )}
 
-        <section className="space-y-2 pt-2">
-          {plan.status === 'done' ? (
-            <>
-              <p className="flex items-center justify-center gap-2 text-[0.9375rem] font-medium text-income">
-                <Icon name="plan" size={18} />
-                {tx(t.spendPlans.settled, { count: plan.postedCount })}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => settleSpendPlan(plan.id)}
-                  className="btn-primary tap min-h-12 rounded-2xl px-3 font-semibold"
-                >
-                  {t.spendPlans.resettle}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => reopenSpendPlan(plan.id)}
-                  className="btn-secondary tap min-h-12 rounded-2xl px-3 font-semibold"
-                >
-                  {t.spendPlans.reopen}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                disabled={!summary.hasActuals}
-                onClick={() => settleSpendPlan(plan.id)}
-                className="btn-primary tap min-h-14 w-full rounded-2xl text-base font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {t.spendPlans.settle}
-              </button>
-              <p className="px-2 text-center text-sm text-ink-muted">{t.spendPlans.settleHint}</p>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={() => setConfirmDelete(true)}
-            className="tap mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl font-semibold text-coral hover:bg-coral-soft"
-          >
-            <Icon name="trash" size={18} />
-            {t.spendPlans.delete}
-          </button>
-        </section>
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          className="tap flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl font-semibold text-coral hover:bg-coral-soft"
+        >
+          <Icon name="trash" size={18} />
+          {t.spendPlans.delete}
+        </button>
       </div>
+
+      <ActivitySheet
+        open={activityForm !== null}
+        days={days}
+        defaultDate={activityForm?.date ?? days[0]}
+        prefill={activityForm?.prefill}
+        initial={activityForm?.activity}
+        onClose={() => setActivityForm(null)}
+        onSave={(input) => {
+          const editing = activityForm?.activity;
+          if (editing) updatePlanActivity(plan.id, editing.id, input);
+          else addPlanActivity(plan.id, input);
+        }}
+        onDelete={() => {
+          const editing = activityForm?.activity;
+          if (editing) removePlanActivity(plan.id, editing.id);
+        }}
+      />
+
+      <RouteSheet
+        open={routeDay !== null}
+        plan={plan}
+        date={routeDay ?? days[0]}
+        onDateChange={setRouteDay}
+        onReorder={(ids) => reorderPlanStops(plan.id, ids)}
+        onEditStop={(activity) => {
+          setRouteDay(null);
+          setActivityForm({ date: activity.date, activity });
+        }}
+        onClose={() => setRouteDay(null)}
+      />
+
+      <ShareSheet open={shareOpen} plan={plan} onClose={() => setShareOpen(false)} />
 
       <SpendPlanSheet
         open={editOpen}

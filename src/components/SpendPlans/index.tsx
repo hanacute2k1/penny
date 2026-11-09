@@ -11,6 +11,7 @@ import { todayIso } from '@/lib/helper/date';
 import {
   daysUntilPlan,
   formatPlanDates,
+  planDays,
   spendPlanPhase,
   summarizeSpendPlan,
   type SpendPlanPhase,
@@ -131,7 +132,17 @@ function SpendPlanCard({ plan, phase }: { plan: SpendPlan; phase: SpendPlanPhase
   const { t, tx, locale } = useI18n();
   const summary = summarizeSpendPlan(plan);
 
-  const when = formatPlanDates(plan, locale);
+  const days = planDays(plan).length;
+  const when = [
+    formatPlanDates(plan, locale),
+    days > 1 ? tx(t.spendPlans.dayCount, { count: days }) : null,
+    plan.people > 1 ? tx(t.spendPlans.peopleCount, { count: plan.people }) : null,
+    plan.activities.length
+      ? tx(t.spendPlans.activityCount, { count: plan.activities.length })
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   const countdown = phase === 'upcoming' ? countdownLabel(daysUntilPlan(plan), t, tx) : null;
 
   return (
@@ -167,14 +178,16 @@ function SpendPlanCard({ plan, phase }: { plan: SpendPlan; phase: SpendPlanPhase
       </span>
       <span className="flex shrink-0 flex-col items-end">
         <span className="num font-semibold">
-          {formatVnd(summary.hasActuals ? summary.actual : summary.estimate, {
-            compact: true,
-            locale,
-          })}
+          {formatVnd(summary.expected, { compact: true, locale })}
         </span>
         <span className="text-xs text-ink-muted">
-          {summary.hasActuals ? t.spendPlans.actual : t.spendPlans.estimate}
+          {summary.hasActuals ? t.spendPlans.actual : t.spendPlans.expected}
         </span>
+        {summary.deposit > 0 ? (
+          <span className="num text-xs text-ink-soft">
+            {t.spendPlans.deposit} {formatVnd(summary.deposit, { compact: true, locale })}
+          </span>
+        ) : null}
       </span>
       <Icon name="chevronRight" size={18} className="text-ink-muted" />
     </Link>
