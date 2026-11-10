@@ -454,21 +454,11 @@ export type Dictionary = {
   auth: {
     title: string;
     subtitle: string;
-    emailLabel: string;
-    emailPlaceholder: string;
-    send: string;
-    sending: string;
-    sentTitle: string;
-    sentBody: string;
-    resend: string;
-    useAnother: string;
     linkError: string;
     genericError: string;
     rateLimited: string;
-    invalidEmail: string;
     welcome: string;
     heroTitle: string;
-    perkNoPassword: string;
     perkPrivate: string;
     perkDevices: string;
     heroSubtitle: string;
@@ -481,19 +471,12 @@ export type Dictionary = {
     withGoogle: string;
     asGuest: string;
     guestHint: string;
-    codeLabel: string;
-    codePlaceholder: string;
-    verifyCode: string;
-    codeError: string;
     providerError: string;
     guestName: string;
     guestOff: string;
     guestDeviceOnly: string;
-    linkEmail: string;
     saveTitle: string;
     saveBody: string;
-    saveSent: string;
-    emailTaken: string;
     guestSignOutTitle: string;
     guestSignOutBody: string;
     account: string;
@@ -505,6 +488,29 @@ export type Dictionary = {
     importBody: string;
     importYes: string;
     importNo: string;
+    perkNoEmail: string;
+    signUpTitle: string;
+    signUpHint: string;
+    signInTab: string;
+    signUpTab: string;
+    usernameLabel: string;
+    usernamePlaceholder: string;
+    usernameHint: string;
+    invalidUsername: string;
+    passwordLabel: string;
+    passwordPlaceholder: string;
+    passwordHint: string;
+    shortPassword: string;
+    showPassword: string;
+    hidePassword: string;
+    signIn: string;
+    signUp: string;
+    working: string;
+    wrongLogin: string;
+    usernameTaken: string;
+    setupNeeded: string;
+    saveAccount: string;
+    saveDone: string;
   };
   reset: {
     open: string;
@@ -1037,28 +1043,17 @@ export const en: Dictionary = {
   },
   auth: {
     title: 'Sign in to Penny',
-    subtitle: "We'll email you a sign-in link — no password needed.",
-    emailLabel: 'Email',
-    emailPlaceholder: 'you@example.com',
-    send: 'Send me a link',
-    sending: 'Sending…',
-    sentTitle: 'Check your email',
-    sentBody: 'We sent a sign-in link to {email}. Open it on this device to continue.',
-    resend: 'Send again',
-    useAnother: 'Use a different email',
-    linkError:
-      'That link has expired, was already used, or was opened in a different browser. Please request a new one.',
-    genericError: "Couldn't send the email. Please try again in a moment.",
-    rateLimited: 'Too many sign-in emails for now. Wait a few minutes, then try again.',
-    invalidEmail: 'Please enter a valid email.',
+    subtitle: 'Sign in with your username and password.',
+    linkError: "That sign-in didn't go through. Please try again.",
+    genericError: 'Something went wrong. Please try again in a moment.',
+    rateLimited: 'Too many tries for now. Wait a few minutes, then try again.',
     welcome: 'Welcome to Penny',
     heroTitle: 'Money made easy, every month',
-    perkNoPassword: 'No password',
     perkPrivate: 'Only you see your data',
     perkDevices: 'Synced on every device',
     heroSubtitle: 'Jot down what you spend in seconds and always know how much is left.',
-    formTitle: 'Start with your email',
-    formHint: "We'll send you a link to sign in. No password to remember.",
+    formTitle: 'Welcome back',
+    formHint: 'Sign in with your Penny username.',
     privacyNote: 'Only you can see your data',
     sampleExpense: 'Lunch',
     sampleIncome: 'Salary',
@@ -1066,25 +1061,17 @@ export const en: Dictionary = {
     withGoogle: 'Continue with Google',
     asGuest: 'Continue as guest',
     guestHint:
-      'No email needed. Your data saves on this device; link an email in Settings to use it on others.',
-    codeLabel: 'Or type the code from the email',
-    codePlaceholder: '123456',
-    verifyCode: 'Sign in',
-    codeError: "That code isn't right or has expired.",
+      'No account needed. Your data saves on this device; create an account in Settings to use it on others.',
     providerError: "Couldn't sign in. Please try again.",
     guestName: 'Guest',
-    guestOff: "Guest mode isn't available right now. Please sign in with email.",
+    guestOff: "Guest mode isn't available right now. Please sign in.",
     guestDeviceOnly: 'Data on this device only',
-    linkEmail: 'Link email',
-    saveTitle: 'Link your email',
+    saveTitle: 'Create an account',
     saveBody:
-      "Enter your email and we'll send a link to confirm it. Then sign in with it on any device to see your data.",
-    saveSent: 'We sent a confirmation link to {email}. Open it to finish.',
-    emailTaken:
-      "This email already has an account. Sign out, then sign in with that email (guest data won't be merged).",
+      'Pick a username and password to keep this data. Then sign in with them on any device.',
     guestSignOutTitle: 'Sign out of guest mode?',
     guestSignOutBody:
-      "You haven't linked an email, so you won't be able to get back to this guest data.",
+      "You haven't created an account, so you won't be able to get back to this guest data.",
     account: 'Account',
     signOut: 'Sign out',
     syncError: "Couldn't save — will retry",
@@ -1094,6 +1081,29 @@ export const en: Dictionary = {
     importBody: 'This device has data saved from before you signed in. Move it into your account?',
     importYes: 'Move it',
     importNo: 'Start fresh',
+    perkNoEmail: 'No email needed',
+    signUpTitle: 'Create your account',
+    signUpHint: 'Just a username and a password. No email needed.',
+    signInTab: 'Sign in',
+    signUpTab: 'Sign up',
+    usernameLabel: 'Username',
+    usernamePlaceholder: 'e.g. hana',
+    usernameHint: '3–24 characters: lowercase letters, numbers, . _ -',
+    invalidUsername: 'Usernames are 3–24 characters: lowercase letters, numbers, . _ -',
+    passwordLabel: 'Password',
+    passwordPlaceholder: 'Your password',
+    passwordHint: 'At least {min} characters',
+    shortPassword: 'Your password needs at least {min} characters.',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    signIn: 'Sign in',
+    signUp: 'Create account',
+    working: 'Just a moment…',
+    wrongLogin: "That username or password isn't right.",
+    usernameTaken: 'That username is taken. Try another one.',
+    setupNeeded: "Can't create accounts right now. Please try again later.",
+    saveAccount: 'Create account',
+    saveDone: 'Done! Sign in as {name} on any device to see your data.',
   },
   reset: {
     open: 'Delete data',

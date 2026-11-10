@@ -3,12 +3,10 @@
 import {
   ArrowRight,
   ChevronDown,
-  Fingerprint,
   Globe,
   LoaderCircle,
   Lock,
-  Mail,
-  MailCheck,
+  MailX,
   MonitorSmartphone,
   Moon,
   ShieldCheck,
@@ -23,13 +21,17 @@ import { useI18n } from '@/contexts/I18nContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LOCALES, type Locale } from '@/lib/i18n';
 import type { AuthOptions } from '@/lib/supabase/authOptions';
-import { safeNext, sendEmailLink, type SignInProblem } from './actions';
+import {
+  enterApp,
+  safeNext,
+  signInWithUsername,
+  signUpWithUsername,
+  type SignInProblem,
+} from './actions';
 import { AppPreview } from './AppPreview';
-import { CodeEntry } from './CodeEntry';
 import { Coin, Sparkle } from './Decor';
 import { OtherMethods } from './OtherMethods';
-
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { PasswordField, UsernameField, checkCredentials, problemText } from './fields';
 
 /*
  * One page, two looks:
@@ -60,49 +62,54 @@ const COINS = [
 ];
 
 /**
- * Sign-in without a password: an emailed link (or the code in it), Google, or trying
- * Penny as a guest. `options` says which of the last two are switched on in Supabase.
+ * Sign in or sign up with a username and password, or try Penny as a guest (and
+ * Google, when it is switched on in Supabase: `options`).
  */
 export function LoginView({ options }: { options: AuthOptions }) {
   const { t, tx, locale, setLocale } = useI18n();
   const searchParams = useSearchParams();
   const next = safeNext(searchParams.get('next'));
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(
     searchParams.get('error') === 'link' ? t.auth.linkError : null,
   );
+  const signingUp = mode === 'signUp';
 
-  async function send(event?: FormEvent) {
-    event?.preventDefault();
-    const address = email.trim();
-    if (!EMAIL.test(address)) {
-      setError(t.auth.invalidEmail);
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    // Signing in doesn't re-check the rules: a wrong name just doesn't match.
+    const invalid = checkCredentials(username, password, t, tx, { strict: signingUp });
+    if (invalid) {
+      setError(invalid);
       return;
     }
     setError(null);
-    setStatus('sending');
-    const problem = await sendEmailLink(address, next);
+    setBusy(true);
+    const problem = signingUp
+      ? await signUpWithUsername(username, password)
+      : await signInWithUsername(username, password);
     if (problem) {
-      setStatus('idle');
-      setError(problem === 'rateLimited' ? t.auth.rateLimited : t.auth.genericError);
+      setBusy(false);
+      setError(problemText(problem, t, tx));
       return;
     }
-    setStatus('sent');
+    enterApp(next);
   }
 
   function showProblem(problem: SignInProblem) {
-    setError(
-      problem === 'rateLimited'
-        ? t.auth.rateLimited
-        : problem === 'guestOff'
-          ? t.auth.guestOff
-          : t.auth.providerError,
-    );
+    setError(problemText(problem, t, tx));
+  }
+
+  function edit(update: () => void) {
+    update();
+    if (error) setError(null);
   }
 
   const perks = [
-    { icon: Fingerprint, label: t.auth.perkNoPassword },
+    { icon: MailX, label: t.auth.perkNoEmail },
     { icon: ShieldCheck, label: t.auth.perkPrivate },
     { icon: MonitorSmartphone, label: t.auth.perkDevices },
   ];
@@ -168,103 +175,72 @@ export function LoginView({ options }: { options: AuthOptions }) {
               className="login-card login-rise p-5 sm:p-6 md:p-7"
               style={{ animationDelay: '80ms' }}
             >
-              {status === 'sent' ? (
-                <div className="text-center" aria-live="polite">
-                  <span className="login-sent-icon mx-auto grid h-16 w-16 place-items-center rounded-3xl md:h-[4.5rem] md:w-[4.5rem]">
-                    <MailCheck size={32} strokeWidth={1.75} aria-hidden="true" />
-                  </span>
-                  <h2 className="login-display mt-4 text-lg font-semibold md:text-[1.4rem] md:font-extrabold">
-                    {t.auth.sentTitle}
+              <form onSubmit={submit} noValidate>
+                <Segmented
+                  value={mode}
+                  onChange={(value) => edit(() => setMode(value))}
+                  ariaLabel={t.auth.title}
+                  options={[
+                    { value: 'signIn', label: t.auth.signInTab },
+                    { value: 'signUp', label: t.auth.signUpTab },
+                  ]}
+                />
+
+                <div className="mb-4 mt-5 hidden md:block">
+                  <h2 className="login-display text-[1.4rem] font-extrabold">
+                    {signingUp ? t.auth.signUpTitle : t.auth.formTitle}
                   </h2>
-                  <p className="mt-2 text-[0.9375rem] leading-relaxed text-ink-soft">
-                    {tx(t.auth.sentBody, { email: email.trim() })}
+                  <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-ink-soft">
+                    {signingUp ? t.auth.signUpHint : t.auth.formHint}
                   </p>
-                  <CodeEntry email={email.trim()} next={next} />
-                  <div className="mt-5 grid gap-2">
-                    <button
-                      type="button"
-                      onClick={() => send()}
-                      className="btn-secondary tap min-h-12 rounded-2xl font-semibold md:rounded-full md:font-bold"
-                    >
-                      {t.auth.resend}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStatus('idle')}
-                      className="tap min-h-11 rounded-2xl text-sm font-semibold text-ink-soft hover:text-ink md:rounded-full"
-                    >
-                      {t.auth.useAnother}
-                    </button>
-                  </div>
                 </div>
-              ) : (
-                <form onSubmit={send} noValidate>
-                  <div className="mb-5 hidden md:block">
-                    <h2 className="login-display text-[1.4rem] font-extrabold">
-                      {t.auth.formTitle}
-                    </h2>
-                    <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-ink-soft">
-                      {t.auth.formHint}
-                    </p>
-                  </div>
 
-                  <label className="block">
-                    <span className="field-label mb-1.5 block md:sr-only">{t.auth.emailLabel}</span>
-                    <span className="relative block">
-                      <Mail
-                        size={19}
-                        strokeWidth={1.8}
-                        aria-hidden="true"
-                        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted md:left-5"
-                      />
-                      <input
-                        type="email"
-                        inputMode="email"
-                        autoComplete="email"
-                        autoFocus
-                        value={email}
-                        onChange={(e) => {
-                          setEmail(e.target.value);
-                          if (error) setError(null);
-                        }}
-                        placeholder={t.auth.emailPlaceholder}
-                        aria-invalid={error ? true : undefined}
-                        className="login-input min-h-13 w-full rounded-2xl py-3 pl-11 pr-4 text-base outline-none transition placeholder:text-ink-muted md:min-h-14 md:rounded-full md:pl-13 md:pr-5 md:text-[1.0625rem]"
-                      />
-                    </span>
-                  </label>
-                  {error ? (
-                    <p role="alert" className="mt-2 text-sm font-medium text-coral md:px-2">
-                      {error}
-                    </p>
-                  ) : null}
-
-                  <button
-                    type="submit"
-                    disabled={status === 'sending'}
-                    className="login-submit btn-shine tap mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold disabled:opacity-60 md:rounded-full md:text-[1.0625rem] md:font-extrabold"
-                  >
-                    {status === 'sending' ? (
-                      <>
-                        <LoaderCircle size={20} className="animate-spin" aria-hidden="true" />
-                        {t.auth.sending}
-                      </>
-                    ) : (
-                      <>
-                        {t.auth.send}
-                        <ArrowRight size={19} strokeWidth={2} aria-hidden="true" />
-                      </>
-                    )}
-                  </button>
-
-                  <p className="mt-4 hidden items-center justify-center gap-1.5 text-[0.8125rem] font-semibold text-ink-muted md:flex">
-                    <Lock size={14} strokeWidth={2} aria-hidden="true" />
-                    {t.auth.privacyNote}
+                <div className="mt-4 grid gap-3 md:mt-0">
+                  <UsernameField
+                    value={username}
+                    onChange={(value) => edit(() => setUsername(value))}
+                    hint={signingUp}
+                    invalid={Boolean(error)}
+                    autoFocus
+                  />
+                  <PasswordField
+                    value={password}
+                    onChange={(value) => edit(() => setPassword(value))}
+                    isNew={signingUp}
+                    invalid={Boolean(error)}
+                  />
+                </div>
+                {error ? (
+                  <p role="alert" className="mt-2 text-sm font-medium text-coral md:px-2">
+                    {error}
                   </p>
+                ) : null}
 
-                  <OtherMethods options={options} next={next} onProblem={showProblem} />
-                </form>
-              )}
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="login-submit btn-shine tap mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold disabled:opacity-60 md:rounded-full md:text-[1.0625rem] md:font-extrabold"
+                >
+                  {busy ? (
+                    <>
+                      <LoaderCircle size={20} className="animate-spin" aria-hidden="true" />
+                      {t.auth.working}
+                    </>
+                  ) : (
+                    <>
+                      {signingUp ? t.auth.signUp : t.auth.signIn}
+                      <ArrowRight size={19} strokeWidth={2} aria-hidden="true" />
+                    </>
+                  )}
+                </button>
+
+                <p className="mt-4 hidden items-center justify-center gap-1.5 text-[0.8125rem] font-semibold text-ink-muted md:flex">
+                  <Lock size={14} strokeWidth={2} aria-hidden="true" />
+                  {t.auth.privacyNote}
+                </p>
+
+                <OtherMethods options={options} next={next} onProblem={showProblem} />
+              </form>
             </div>
 
             {/* Phone footer: what you get, then the language switch. */}

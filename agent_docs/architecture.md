@@ -8,7 +8,7 @@ src/
 │   ├── layout.tsx            # Boot script (theme, cỡ chữ, glass, mục ẩn) + providers
 │   ├── (main)/               # Tổng quan, Giao dịch, Ngân sách, Kế hoạch, Đi lại, Báo cáo
 │   ├── settings/             # Cài đặt, Danh mục, Chi cố định, Khoản dự kiến
-│   ├── login/, auth/callback # Đăng nhập magic link
+│   ├── login/, auth/callback # Đăng nhập tên + mật khẩu, khách, Google
 │   └── api/v1/               # REST API (Route Handler)
 ├── apis/data.ts              # Client gọi API: fetchRemoteState, pushChanges
 ├── components/
@@ -47,7 +47,7 @@ Danh mục có sẵn chỉ được dịch khi tên còn nguyên như mặc đ�
 
 ## Đăng nhập
 
-Magic link qua email của Supabase. `/auth/callback` đổi mã lấy phiên; `proxy.ts` làm mới cookie phiên và chuyển người chưa đăng nhập về `/login`.
+Tên đăng nhập + mật khẩu (Supabase email/password: tên được lưu thành `<tên>@penny.local`, xem `lib/helper/username.ts`), chế độ khách (tài khoản ẩn danh) và Google. `/auth/callback` đổi mã Google lấy phiên; `proxy.ts` làm mới cookie phiên và chuyển người chưa đăng nhập về `/login`.
 
 ## Giao diện, ngôn ngữ
 

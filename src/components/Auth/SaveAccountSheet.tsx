@@ -1,18 +1,18 @@
 'use client';
 
-import { LoaderCircle, MailCheck } from 'lucide-react';
+import { CircleCheck, LoaderCircle } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Sheet } from '@/components/Base/Sheet';
 import { useI18n } from '@/contexts/I18nContext';
+import { normalizeUsername } from '@/lib/helper/username';
 import { saveGuestAccount } from './actions';
-
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { PasswordField, UsernameField, checkCredentials, problemText } from './fields';
 
 type Props = { open: boolean; onClose: () => void };
 
 /**
- * For guests: add an email to the guest account. Once the link in that email is
- * opened, it becomes a normal account with the same data.
+ * For guests: pick a username and password. The guest account becomes a normal
+ * one with the same data, usable on any device.
  */
 export function SaveAccountSheet({ open, onClose }: Props) {
   // Mounting fresh on every open resets the form without an effect.
@@ -21,47 +21,47 @@ export function SaveAccountSheet({ open, onClose }: Props) {
 
 function SheetBody({ onClose }: Omit<Props, 'open'>) {
   const { t, tx } = useI18n();
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [error, setError] = useState<string | null>(null);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const address = email.trim();
-    if (!EMAIL.test(address)) {
-      setError(t.auth.invalidEmail);
+    const invalid = checkCredentials(username, password, t, tx, { strict: true });
+    if (invalid) {
+      setError(invalid);
       return;
     }
     setError(null);
-    setStatus('sending');
-    const problem = await saveGuestAccount(address);
-    if (!problem) {
-      setStatus('sent');
+    setStatus('saving');
+    const problem = await saveGuestAccount(username, password);
+    if (problem) {
+      setStatus('idle');
+      setError(problemText(problem, t, tx));
       return;
     }
-    setStatus('idle');
-    setError(
-      problem === 'emailTaken'
-        ? t.auth.emailTaken
-        : problem === 'rateLimited'
-          ? t.auth.rateLimited
-          : t.auth.genericError,
-    );
+    setStatus('saved');
+  }
+
+  function finish() {
+    // Reload so Settings shows the new account instead of "Guest".
+    window.location.reload();
   }
 
   return (
-    <Sheet title={t.auth.saveTitle} onClose={onClose}>
-      {status === 'sent' ? (
+    <Sheet title={t.auth.saveTitle} onClose={status === 'saved' ? finish : onClose}>
+      {status === 'saved' ? (
         <div className="pb-2 text-center" aria-live="polite">
           <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-paper">
-            <MailCheck size={28} strokeWidth={1.75} aria-hidden="true" />
+            <CircleCheck size={28} strokeWidth={1.75} aria-hidden="true" />
           </span>
           <p className="mt-3 text-[0.9375rem] text-ink-soft">
-            {tx(t.auth.saveSent, { email: email.trim() })}
+            {tx(t.auth.saveDone, { name: normalizeUsername(username) })}
           </p>
           <button
             type="button"
-            onClick={onClose}
+            onClick={finish}
             className="btn-secondary tap mt-5 min-h-12 w-full rounded-2xl font-semibold"
           >
             {t.common.close}
@@ -70,23 +70,29 @@ function SheetBody({ onClose }: Omit<Props, 'open'>) {
       ) : (
         <form onSubmit={submit} noValidate>
           <p className="text-[0.9375rem] text-ink-soft">{t.auth.saveBody}</p>
-          <label className="mt-4 block">
-            <span className="field-label mb-1.5 block">{t.auth.emailLabel}</span>
-            <input
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
+          <div className="mt-4 grid gap-3">
+            <UsernameField
+              variant="sheet"
+              value={username}
+              onChange={(value) => {
+                setUsername(value);
                 setError(null);
               }}
-              placeholder={t.auth.emailPlaceholder}
-              aria-invalid={error ? true : undefined}
-              className="min-h-12 w-full rounded-2xl border border-line bg-paper px-4 outline-none placeholder:text-ink-muted focus:border-ink focus:ring-2 focus:ring-ink/10"
+              hint
+              invalid={Boolean(error)}
+              autoFocus
             />
-          </label>
+            <PasswordField
+              variant="sheet"
+              value={password}
+              onChange={(value) => {
+                setPassword(value);
+                setError(null);
+              }}
+              isNew
+              invalid={Boolean(error)}
+            />
+          </div>
           {error ? (
             <p role="alert" className="mt-2 text-sm font-medium text-coral">
               {error}
@@ -94,13 +100,13 @@ function SheetBody({ onClose }: Omit<Props, 'open'>) {
           ) : null}
           <button
             type="submit"
-            disabled={status === 'sending'}
+            disabled={status === 'saving'}
             className="btn-primary tap mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold disabled:opacity-60"
           >
-            {status === 'sending' ? (
+            {status === 'saving' ? (
               <LoaderCircle size={20} className="animate-spin" aria-hidden="true" />
             ) : null}
-            {t.auth.linkEmail}
+            {t.auth.saveAccount}
           </button>
         </form>
       )}

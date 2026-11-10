@@ -1,15 +1,23 @@
 import type { AuthError } from '@supabase/supabase-js';
+import { normalizeUsername, usernameEmail } from '@/lib/helper/username';
 import { createClient } from '@/lib/supabase/client';
 
 /** Why a sign-in step failed, in terms the screen can show. */
-export type SignInProblem = 'rateLimited' | 'emailTaken' | 'guestOff' | 'generic';
+export type SignInProblem =
+  | 'rateLimited'
+  | 'wrongLogin'
+  | 'usernameTaken'
+  | 'weakPassword'
+  | 'setupNeeded'
+  | 'guestOff'
+  | 'generic';
 
 /** Only same-site paths, never an absolute URL from the query string. */
 export function safeNext(next: string | null): string {
   return next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
 }
 
-/** Where email links and Google send people back to (app/auth/callback/route.ts). */
+/** Where Google sends people back to (app/auth/callback/route.ts). */
 export function callbackUrl(next: string): string {
   const url = new URL('/auth/callback', window.location.origin);
   url.searchParams.set('next', next);
@@ -23,32 +31,57 @@ export function enterApp(next: string) {
 
 function problemOf(error: AuthError): SignInProblem {
   console.error('[auth]', error.code, error.message);
-  if (
-    error.status === 429 ||
-    error.code === 'over_email_send_rate_limit' ||
-    error.code === 'over_request_rate_limit'
-  ) {
-    return 'rateLimited';
-  }
+  if (error.status === 429 || error.code === 'over_request_rate_limit') return 'rateLimited';
+  if (error.code === 'invalid_credentials') return 'wrongLogin';
+  if (error.code === 'user_already_exists' || error.code === 'email_exists') return 'usernameTaken';
+  if (error.code === 'weak_password') return 'weakPassword';
   if (error.code === 'anonymous_provider_disabled') return 'guestOff';
-  if (error.code === 'email_exists' || error.code === 'user_already_exists') return 'emailTaken';
+  // Supabase refused the made-up address, or wants to email a confirmation.
+  if (
+    error.code === 'email_address_invalid' ||
+    error.code === 'email_provider_disabled' ||
+    error.code === 'signup_disabled' ||
+    error.code === 'over_email_send_rate_limit'
+  ) {
+    return setupNeeded(error.code);
+  }
   return 'generic';
 }
 
-/** Emails a sign-in link (and a 6-digit code, if the email template includes one). */
-export async function sendEmailLink(email: string, next: string): Promise<SignInProblem | null> {
-  const { error } = await createClient().auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: callbackUrl(next) },
+/** Sign-up needs "Confirm email" switched off in Supabase (see supabase/README.md). */
+function setupNeeded(why: string): SignInProblem {
+  console.error(
+    `[auth] Username sign-up is not set up in Supabase (${why}). ` +
+      'Turn off Authentication → Sign In / Providers → Email → "Confirm email".',
+  );
+  return 'setupNeeded';
+}
+
+export async function signInWithUsername(
+  username: string,
+  password: string,
+): Promise<SignInProblem | null> {
+  const { error } = await createClient().auth.signInWithPassword({
+    email: usernameEmail(username),
+    password,
   });
   return error ? problemOf(error) : null;
 }
 
-/** Signs in with the code from the email; works on any device. */
-export async function verifyEmailCode(email: string, code: string): Promise<boolean> {
-  const { error } = await createClient().auth.verifyOtp({ email, token: code, type: 'email' });
-  if (error) problemOf(error);
-  return !error;
+/** A new account, signed in right away. */
+export async function signUpWithUsername(
+  username: string,
+  password: string,
+): Promise<SignInProblem | null> {
+  const name = normalizeUsername(username);
+  const { data, error } = await createClient().auth.signUp({
+    email: usernameEmail(name),
+    password,
+    options: { data: { username: name } },
+  });
+  if (error) return problemOf(error);
+  // No session means Supabase is waiting for an email confirmation that never comes.
+  return data.session ? null : setupNeeded('no session after sign-up');
 }
 
 /** Leaves for Google's sign-in page; comes back through the callback. */
@@ -63,18 +96,25 @@ export async function signInWithGoogle(next: string): Promise<SignInProblem | nu
 /**
  * Guest mode: an anonymous Supabase account. The app works exactly the same
  * (data is saved, protected by RLS); it is tied to this browser until the guest
- * adds an email with `saveGuestAccount`.
+ * picks a username with `saveGuestAccount`.
  */
 export async function continueAsGuest(): Promise<SignInProblem | null> {
   const { error } = await createClient().auth.signInAnonymously();
   return error ? problemOf(error) : null;
 }
 
-/** Turns the guest account into a normal one (same data) once the email is confirmed. */
-export async function saveGuestAccount(email: string): Promise<SignInProblem | null> {
-  const { error } = await createClient().auth.updateUser(
-    { email },
-    { emailRedirectTo: callbackUrl('/') },
-  );
-  return error ? problemOf(error) : null;
+/** Turns the guest account into a normal one (same data) with a username and password. */
+export async function saveGuestAccount(
+  username: string,
+  password: string,
+): Promise<SignInProblem | null> {
+  const name = normalizeUsername(username);
+  const email = usernameEmail(name);
+  const { data, error } = await createClient().auth.updateUser({
+    email,
+    password,
+    data: { username: name },
+  });
+  if (error) return problemOf(error);
+  return data.user?.email === email ? null : setupNeeded('email change waits for confirmation');
 }

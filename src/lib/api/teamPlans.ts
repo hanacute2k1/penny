@@ -8,6 +8,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { mergePlan } from '@/lib/helper/planMerge';
+import { accountName } from '@/lib/helper/username';
 import { normalizeSpendPlan } from '@/lib/helper/spendPlans';
 import type { SpendPlan } from '@/lib/type';
 import { fromRow, spendPlanSchema, toRow } from './collections';
@@ -166,7 +167,8 @@ export async function loadTeamPeople(
   if (error) throw new Error(error.message);
   return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
     userId: String(row.user_id),
-    email: (row.email as string | null) ?? null,
+    // Username accounts show their username, not the made-up address behind it.
+    email: accountName(row.email as string | null),
     isGuest: Boolean(row.is_guest),
     isOwner: Boolean(row.is_owner),
   }));

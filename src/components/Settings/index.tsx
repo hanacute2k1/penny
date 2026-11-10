@@ -18,6 +18,7 @@ import { useHiddenModules } from '@/hooks/useHiddenModules';
 import { createClient } from '@/lib/supabase/client';
 import { ConfirmDialog } from '@/components/Base/ConfirmDialog';
 import { SaveAccountSheet } from '@/components/Auth/SaveAccountSheet';
+import { accountName } from '@/lib/helper/username';
 
 /** "Rent, Wifi, Netflix…" — the first few names, so the row shows what's inside. */
 function preview(names: string[]) {
@@ -228,7 +229,7 @@ export function AccountRow({ email, isGuest }: { email: string | null; isGuest: 
           {isGuest ? (
             t.auth.guestDeviceOnly
           ) : (
-            <span className="block truncate">{email ?? '—'}</span>
+            <span className="block truncate">{accountName(email) ?? '—'}</span>
           )}
         </span>
       </span>
@@ -239,7 +240,7 @@ export function AccountRow({ email, isGuest }: { email: string | null; isGuest: 
             onClick={() => setSaving(true)}
             className="btn-primary tap rounded-full px-4 py-2 text-sm font-semibold"
           >
-            {t.auth.linkEmail}
+            {t.auth.saveAccount}
           </button>
         ) : null}
         <button

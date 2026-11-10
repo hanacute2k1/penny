@@ -25,7 +25,7 @@ Sửa code xong thì chạy lint, type-check, test và format:check cho tới kh
 
 ## Kiến trúc
 
-Penny là app quản lý chi tiêu theo tháng: Next.js App Router + React + TypeScript (strict) + Tailwind v4, dữ liệu ở Supabase (Postgres + RLS), đăng nhập bằng magic link. Giao diện 3 ngôn ngữ: vi, en, ko.
+Penny là app quản lý chi tiêu theo tháng: Next.js App Router + React + TypeScript (strict) + Tailwind v4, dữ liệu ở Supabase (Postgres + RLS), đăng nhập bằng tên + mật khẩu (hoặc khách). Giao diện 3 ngôn ngữ: vi, en, ko.
 
 ### Quy tắc chính
 

@@ -30,3 +30,13 @@ export const SYNC = {
   firstRetryMs: 2000,
   maxRetryMs: 30_000,
 } as const;
+
+/**
+ * Accounts are a username + password. Supabase only signs people in by email, so
+ * each username is stored as `<username>@<domain>`, an address no mail is ever
+ * sent to. Changing the domain locks out every existing account.
+ */
+export const ACCOUNT = {
+  emailDomain: process.env.NEXT_PUBLIC_ACCOUNT_EMAIL_DOMAIN || 'penny.local',
+  minPassword: 6,
+} as const;
