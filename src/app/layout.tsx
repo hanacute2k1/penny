@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { I18nProvider } from '@/contexts/I18nContext';
+import { getRequestCurrency } from '@/lib/currency/server';
 import { getRequestLocale } from '@/lib/i18n/server';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { GlassLensFilter } from '@/components/Base/GlassLensFilter';
@@ -88,11 +89,11 @@ const themeBootScript = `
  */
 export const instant = false;
 
-/** Server-resolved language, so the very first render is already in the user's language. */
+/** Server-resolved language and currency, so the very first render is already right. */
 async function LocaleProviders({ children }: { children: ReactNode }) {
-  const locale = await getRequestLocale();
+  const [locale, currency] = await Promise.all([getRequestLocale(), getRequestCurrency()]);
   return (
-    <I18nProvider initialLocale={locale}>
+    <I18nProvider initialLocale={locale} initialCurrency={currency}>
       <StoreProvider>{children}</StoreProvider>
     </I18nProvider>
   );

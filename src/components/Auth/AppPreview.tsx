@@ -1,6 +1,5 @@
 import { ItemIcon } from '@/components/Base/ItemIcon';
 import { useI18n } from '@/contexts/I18nContext';
-import { formatVnd } from '@/lib/helper/format';
 import { Coin, Sparkle } from './Decor';
 
 /**
@@ -8,8 +7,8 @@ import { Coin, Sparkle } from './Decor';
  * an expense and an income floating around it. Sample numbers, not the user's data.
  */
 export function AppPreview({ className = '' }: { className?: string }) {
-  const { t, locale } = useI18n();
-  const short = (value: number) => formatVnd(value, { compact: true, locale });
+  const { t, money } = useI18n();
+  const short = (value: number) => money(value, { compact: true });
 
   return (
     <div
@@ -29,7 +28,7 @@ export function AppPreview({ className = '' }: { className?: string }) {
       >
         <p className="text-[0.8125rem] font-bold text-ink-soft">{t.dashboard.remainingBudget}</p>
         <p className="login-display num mt-0.5 text-[1.6rem] font-extrabold leading-tight">
-          {formatVnd(4_473_000, { locale })}
+          {money(4_473_000)}
         </p>
         <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-paper-2">
           <div className="login-bar h-full w-[62%] rounded-full" />

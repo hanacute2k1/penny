@@ -3,7 +3,6 @@
 import { useI18n } from '@/contexts/I18nContext';
 import { categoryTint } from '@/lib/helper/categoryTone';
 import type { Category } from '@/lib/type';
-import { formatVnd } from '@/lib/helper/format';
 import { ItemIcon } from '@/components/Base/ItemIcon';
 import { iconText } from '@/lib/helper/icons';
 
@@ -52,8 +51,8 @@ export function DiffLabel({
   diff: number;
   size?: 'sm' | 'md';
 }) {
-  const { t, tx, locale } = useI18n();
-  const amount = formatVnd(Math.abs(diff), { compact: true, locale });
+  const { t, tx, money } = useI18n();
+  const amount = money(Math.abs(diff), { compact: true });
   const text =
     diff > 0
       ? tx(t.spendPlans.left, { amount })

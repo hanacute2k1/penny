@@ -7,7 +7,8 @@ import { BrandMark } from '@/components/Base/BrandMark';
 import { ItemIcon } from '@/components/Base/ItemIcon';
 import { Segmented } from '@/components/Base/Segmented';
 import { useI18n } from '@/contexts/I18nContext';
-import { formatVnd } from '@/lib/helper/format';
+import { DEFAULT_CURRENCY } from '@/lib/currency';
+import { formatMoney } from '@/lib/helper/format';
 import { formatPlanDates, planDays, summarizeSpendPlan } from '@/lib/helper/spendPlans';
 import type { SpendPlan } from '@/lib/type';
 import { Checklist } from './Checklist';
@@ -54,7 +55,9 @@ export function SharedPlanView({ plan }: { plan: SpendPlan | null }) {
 
   const days = planDays(plan);
   const summary = summarizeSpendPlan(plan);
-  const compact = (value: number) => formatVnd(value, { compact: true, locale });
+  // The owner's currency, not the viewer's: these are their amounts.
+  const compact = (value: number) =>
+    formatMoney(value, { currency: plan.currency ?? DEFAULT_CURRENCY, locale, compact: true });
   const planned = plan.items.filter((item) => !item.isExtra || (item.actual ?? 0) > 0);
   const stats = [
     {

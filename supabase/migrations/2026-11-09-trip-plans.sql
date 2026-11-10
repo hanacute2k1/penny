@@ -1,4 +1,5 @@
--- Trip plans: itinerary by day, packing checklist, deposits, people, share link.
+-- Trip plans: itinerary by day, packing checklist, deposits, people, share link
+-- (with the currency its amounts are in).
 -- Run once in Supabase → SQL Editor on a database created from an older schema.sql.
 -- Safe to run again. Existing plans and data are kept.
 
@@ -6,7 +7,8 @@ alter table public.spend_plans
   add column if not exists people int not null default 1 check (people between 1 and 99),
   add column if not exists activities jsonb not null default '[]',
   add column if not exists checklist jsonb not null default '[]',
-  add column if not exists share_id text unique;
+  add column if not exists share_id text unique,
+  add column if not exists currency text;
 
 -- Shared trip plans: anyone with the link (/share/<share_id>) can read that one plan,
 -- nothing else. Runs as the table owner so it skips RLS, and only returns a plan whose

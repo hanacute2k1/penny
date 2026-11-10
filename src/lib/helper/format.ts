@@ -1,3 +1,4 @@
+import { CURRENCIES, toMajor, type CurrencyCode } from '@/lib/currency';
 import type { Locale } from '@/lib/i18n';
 
 /**
@@ -18,31 +19,97 @@ export function compactNumber(abs: number, locale: Locale): string {
   return String(abs);
 }
 
-export function formatVnd(amount: number, opts?: { compact?: boolean; locale?: Locale }): string {
-  const abs = Math.abs(amount);
-  const locale = opts?.locale ?? 'en';
+const NUMBER_LOCALES: Record<Locale, string> = { vi: 'vi-VN', en: 'en-US', ko: 'ko-KR' };
 
-  if (opts?.compact && abs >= 1_000) {
+/**
+ * Money for reading: "1.200.000 ₫", "$12.50", "₩10,000"; compact "4.5tr" / "4.5M" /
+ * "447만" (no sign, for tight spots). `amount` is in stored minor units.
+ */
+export function formatMoney(
+  amount: number,
+  opts: { currency: CurrencyCode; compact?: boolean; locale?: Locale },
+): string {
+  const { currency } = opts;
+  const locale = opts.locale ?? 'en';
+  const major = toMajor(amount, currency);
+  const abs = Math.abs(major);
+
+  if (opts.compact && abs >= 1_000) {
     const text = compactNumber(abs, locale);
-    return amount < 0 ? `-${text}` : text;
+    return major < 0 ? `-${text}` : text;
   }
 
-  return new Intl.NumberFormat('vi-VN', {
+  // VND has always been written the Vietnamese way, whatever the language.
+  const numberLocale = currency === 'VND' ? 'vi-VN' : NUMBER_LOCALES[locale];
+  const decimals = Number.isInteger(major) ? 0 : CURRENCIES[currency].decimals;
+  return new Intl.NumberFormat(numberLocale, {
     style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(amount);
+    currency,
+    // "$" rather than "US$" in Vietnamese; đồng keeps its usual "₫".
+    currencyDisplay: currency === 'VND' ? 'symbol' : 'narrowSymbol',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(major);
 }
 
-export function formatSignedVnd(amount: number, type: 'expense' | 'income'): string {
-  const formatted = formatVnd(amount);
-  return type === 'expense'
-    ? `-${formatted.replace('₫', '').trim()}đ`
-    : `+${formatted.replace('₫', '').trim()}đ`;
+/** Separator between thousands in typed amounts: "1.200.000" for đồng, "1,200" elsewhere. */
+const groupSeparator = (currency: CurrencyCode) => (currency === 'VND' ? '.' : ',');
+
+function groupDigits(digits: string, currency: CurrencyCode): string {
+  const trimmed = digits.replace(/^0+(?=\d)/, '');
+  return trimmed.replace(/\B(?=(\d{3})+(?!\d))/g, groupSeparator(currency));
 }
 
-export function parseAmountInput(raw: string): number {
-  const digits = raw.replace(/[^\d]/g, '');
-  if (!digits) return 0;
-  return Number(digits);
+/** Plain number for amount fields and rows that show the unit beside it: "1.200.000", "12.50". */
+export function formatAmountText(amount: number, currency: CurrencyCode): string {
+  const { decimals } = CURRENCIES[currency];
+  const sign = amount < 0 ? '-' : '';
+  const abs = Math.abs(Math.round(amount));
+  const whole = groupDigits(String(Math.floor(abs / 10 ** decimals)), currency);
+  const cents = decimals ? abs % 10 ** decimals : 0;
+  return cents ? `${sign}${whole}.${String(cents).padStart(decimals, '0')}` : `${sign}${whole}`;
+}
+
+/**
+ * Reads what is typed in an amount field: the stored value (minor units, null
+ * when empty) and the text to show back, grouped as you type. For currencies
+ * with cents, "." is the decimal mark, and so is a "," followed by at most two
+ * digits ("12,5" on keyboards that offer a comma); anything past two decimals
+ * is dropped.
+ */
+export function readAmountInput(
+  raw: string,
+  currency: CurrencyCode,
+): { value: number | null; text: string } {
+  const { decimals } = CURRENCIES[currency];
+  const cleaned = raw.replace(/[^\d.,]/g, '');
+  let point = -1;
+  if (decimals) {
+    point = cleaned.lastIndexOf('.');
+    const comma = cleaned.lastIndexOf(',');
+    if (point < 0 && comma >= 0 && cleaned.length - comma - 1 <= decimals) point = comma;
+  }
+  const whole = (point < 0 ? cleaned : cleaned.slice(0, point)).replace(/\D/g, '');
+  const fraction =
+    point < 0
+      ? ''
+      : cleaned
+          .slice(point + 1)
+          .replace(/\D/g, '')
+          .slice(0, decimals);
+  if (!whole && point < 0) return { value: null, text: '' };
+  const value =
+    Number(whole || '0') * 10 ** decimals + Number(fraction.padEnd(decimals, '0') || '0');
+  const text = `${groupDigits(whole || '0', currency)}${point < 0 ? '' : `.${fraction}`}`;
+  return { value, text };
+}
+
+/** Stored value (minor units) of what is typed; 0 when empty. */
+export function parseAmountInput(raw: string, currency: CurrencyCode): number {
+  return readAmountInput(raw, currency).value ?? 0;
+}
+
+/** Phone keyboard for amount fields: with a decimal key only for currencies with cents. */
+export function amountInputMode(currency: CurrencyCode): 'decimal' | 'numeric' {
+  return CURRENCIES[currency].decimals ? 'decimal' : 'numeric';
 }

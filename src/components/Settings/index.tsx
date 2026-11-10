@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { type ReactNode, useState } from 'react';
 import { useStore } from '@/contexts/StoreContext';
 import { useI18n } from '@/contexts/I18nContext';
+import { CURRENCIES, CURRENCY_CODES, isCurrency } from '@/lib/currency';
 import { LOCALES } from '@/lib/i18n';
 import { ThemeToggle } from '@/components/Base/ThemeToggle';
 import { Icon, type IconName } from '@/components/Base/Icon';
@@ -141,11 +142,9 @@ export function SettingsView({ email, isGuest }: { email: string | null; isGuest
           />
         </Section>
 
-        <div className="flex items-center gap-3 px-4 py-4 md:px-5">
-          <SettingIcon name="coin" tone={3} />
-          <span className="flex-1 font-semibold">{t.settings.currency}</span>
-          <span className="rounded-full bg-paper px-3 py-1 text-sm font-semibold">VND</span>
-        </div>
+        <Section icon="coin" tone={3} title={t.settings.currency}>
+          <CurrencyPicker />
+        </Section>
       </div>
 
       <div className="panel mt-4 overflow-hidden">
@@ -281,5 +280,30 @@ export function SettingIcon({ name, tone }: { name: IconName; tone: number }) {
     >
       <Icon name={name} size={19} />
     </span>
+  );
+}
+
+/** Pick the unit money is kept in: "VND · Vietnamese đồng", "USD · US dollar"… */
+function CurrencyPicker() {
+  const { t, locale, currency, setCurrency } = useI18n();
+  const names = new Intl.DisplayNames([locale], { type: 'currency' });
+  return (
+    <>
+      <select
+        value={currency}
+        onChange={(e) => {
+          if (isCurrency(e.target.value)) setCurrency(e.target.value);
+        }}
+        aria-label={t.settings.currency}
+        className="min-h-12 w-full rounded-2xl border border-line bg-paper px-4 font-semibold outline-none focus:border-ink"
+      >
+        {CURRENCY_CODES.map((code) => (
+          <option key={code} value={code}>
+            {CURRENCIES[code].symbol} {code} · {names.of(code)}
+          </option>
+        ))}
+      </select>
+      <p className="mt-2 text-sm text-ink-muted">{t.settings.currencyHint}</p>
+    </>
   );
 }

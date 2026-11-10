@@ -7,7 +7,6 @@ import { useMonth } from '@/hooks/useMonth';
 import { useStore } from '@/contexts/StoreContext';
 import { useI18n } from '@/contexts/I18nContext';
 import { buildYearOverview } from '@/lib/helper/aggregations';
-import { formatVnd } from '@/lib/helper/format';
 import {
   currentYearMonth,
   labelYearMonth,
@@ -23,7 +22,7 @@ import { DeltaBadge } from './DeltaBadge';
 export function YearReviewView() {
   const { yearMonth, setMonth } = useMonth();
   const { ready, transactions, monthPlans } = useStore();
-  const { t, tx, locale } = useI18n();
+  const { t, tx, locale, money } = useI18n();
   const year = yearFromYearMonth(yearMonth);
   // Read once on mount; the page is rendered per request, so server and browser agree.
   const [nowMonth] = useState(currentYearMonth);
@@ -104,7 +103,7 @@ export function YearReviewView() {
           <p className="mt-4 text-xs text-ink-soft">
             {tx(t.year.activeMonths, { count: overview.activeMonths })} ·{' '}
             {tx(t.year.avgExpense, {
-              amount: formatVnd(overview.averages.expense, { compact: true, locale }),
+              amount: money(overview.averages.expense, { compact: true }),
             })}
           </p>
         </section>
@@ -128,7 +127,7 @@ export function YearReviewView() {
                   key={m.yearMonth}
                   type="button"
                   title={`${shortMonthLabel(m.yearMonth, locale)}: ${
-                    isFuture ? tx(t.year.notesCount, { count: noteCount }) : formatVnd(m.expense)
+                    isFuture ? tx(t.year.notesCount, { count: noteCount }) : money(m.expense)
                   }`}
                   onClick={() => setMonth(m.yearMonth)}
                   className="tap flex h-full min-w-0 flex-1 flex-col items-center gap-1"
@@ -209,7 +208,7 @@ export function YearReviewView() {
                     }`}
                   >
                     {plan.type === 'expense' ? '-' : '+'}
-                    {formatVnd(plan.amount, { compact: true, locale })}
+                    {money(plan.amount, { compact: true })}
                   </span>
                 </li>
               ))}
@@ -252,13 +251,13 @@ export function YearReviewView() {
                       <span>
                         {t.dashboard.income}:{' '}
                         <span className="num font-semibold text-income">
-                          {formatVnd(m.income, { compact: true, locale })}
+                          {money(m.income, { compact: true })}
                         </span>
                       </span>
                       <span className="text-right">
                         {t.dashboard.expense}:{' '}
                         <span className="num font-semibold text-ink">
-                          {formatVnd(m.expense, { compact: true, locale })}
+                          {money(m.expense, { compact: true })}
                         </span>
                       </span>
                     </div>

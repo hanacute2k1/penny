@@ -6,7 +6,6 @@ import { Icon } from '@/components/Base/Icon';
 import { ProgressBar } from '@/components/Base/ProgressBar';
 import { useI18n } from '@/contexts/I18nContext';
 import { useStore } from '@/contexts/StoreContext';
-import { formatVnd } from '@/lib/helper/format';
 import { itemDiff, summarizeSpendPlan } from '@/lib/helper/spendPlans';
 import type { SpendPlan, SpendPlanItem } from '@/lib/type';
 import { CategorySelect, DiffLabel } from './shared';
@@ -17,8 +16,15 @@ const EXTRA_CATEGORY = 'c-other';
  * The money side of a trip. Each planned item has its estimate, the deposit paid
  * before leaving, and the real total entered afterwards; unplanned extras below.
  */
-export function Costs({ plan }: { plan: SpendPlan }) {
-  const { t, tx, locale } = useI18n();
+export function Costs({
+  plan,
+  canSettle = true,
+}: {
+  plan: SpendPlan;
+  /** Closing out posts costs into the owner's transactions, so friends can't. */
+  canSettle?: boolean;
+}) {
+  const { t, tx, money } = useI18n();
   const { categories, setSpendPlanItems, settleSpendPlan, reopenSpendPlan } = useStore();
 
   const expenseCats = useMemo(
@@ -32,8 +38,7 @@ export function Costs({ plan }: { plan: SpendPlan }) {
   const summary = summarizeSpendPlan(plan);
   const planned = plan.items.filter((item) => !item.isExtra);
   const extras = plan.items.filter((item) => item.isExtra);
-  const money = (value: number) => formatVnd(value, { locale });
-  const compact = (value: number) => formatVnd(value, { compact: true, locale });
+  const compact = (value: number) => money(value, { compact: true });
 
   const setItems = (items: SpendPlanItem[]) => setSpendPlanItems(plan.id, items);
   const patchItem = (id: string, patch: Partial<SpendPlanItem>) =>
@@ -217,44 +222,46 @@ export function Costs({ plan }: { plan: SpendPlan }) {
         </button>
       </section>
 
-      <section className="space-y-2 pt-2">
-        {plan.status === 'done' ? (
-          <>
-            <p className="flex items-center justify-center gap-2 text-[0.9375rem] font-medium text-income">
-              <Icon name="plan" size={18} />
-              {tx(t.spendPlans.settled, { count: plan.postedCount })}
-            </p>
-            <div className="grid grid-cols-2 gap-2">
+      {canSettle ? (
+        <section className="space-y-2 pt-2">
+          {plan.status === 'done' ? (
+            <>
+              <p className="flex items-center justify-center gap-2 text-[0.9375rem] font-medium text-income">
+                <Icon name="plan" size={18} />
+                {tx(t.spendPlans.settled, { count: plan.postedCount })}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => settleSpendPlan(plan.id)}
+                  className="btn-primary tap min-h-12 rounded-2xl px-3 font-semibold"
+                >
+                  {t.spendPlans.resettle}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => reopenSpendPlan(plan.id)}
+                  className="btn-secondary tap min-h-12 rounded-2xl px-3 font-semibold"
+                >
+                  {t.spendPlans.reopen}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
               <button
                 type="button"
+                disabled={!summary.hasActuals}
                 onClick={() => settleSpendPlan(plan.id)}
-                className="btn-primary tap min-h-12 rounded-2xl px-3 font-semibold"
+                className="btn-primary tap min-h-14 w-full rounded-2xl text-base font-semibold disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {t.spendPlans.resettle}
+                {t.spendPlans.settle}
               </button>
-              <button
-                type="button"
-                onClick={() => reopenSpendPlan(plan.id)}
-                className="btn-secondary tap min-h-12 rounded-2xl px-3 font-semibold"
-              >
-                {t.spendPlans.reopen}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              disabled={!summary.hasActuals}
-              onClick={() => settleSpendPlan(plan.id)}
-              className="btn-primary tap min-h-14 w-full rounded-2xl text-base font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {t.spendPlans.settle}
-            </button>
-            <p className="px-2 text-center text-sm text-ink-muted">{t.spendPlans.settleHint}</p>
-          </>
-        )}
-      </section>
+              <p className="px-2 text-center text-sm text-ink-muted">{t.spendPlans.settleHint}</p>
+            </>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

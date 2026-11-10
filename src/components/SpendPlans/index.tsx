@@ -1,12 +1,12 @@
 'use client';
 
 import { LoadingText } from '@/components/Base/LoadingText';
+import { Users } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/contexts/StoreContext';
-import { useI18n } from '@/contexts/I18nContext';
-import { formatVnd } from '@/lib/helper/format';
+import { CurrencyScope, useI18n } from '@/contexts/I18nContext';
 import { todayIso } from '@/lib/helper/date';
 import {
   daysUntilPlan,
@@ -100,8 +100,13 @@ export function SpendPlansView() {
                 </h2>
                 <ul className="space-y-2">
                   {grouped[phase].map((plan) => (
-                    <li key={plan.id}>
-                      <SpendPlanCard plan={plan} phase={phase} />
+                    <li key={`${plan.ownerId ?? ''}:${plan.id}`}>
+                      {/* A friend's plan is in its owner's currency. */}
+                      <CurrencyScope
+                        currency={plan.collaborative || plan.ownerId ? plan.currency : undefined}
+                      >
+                        <SpendPlanCard plan={plan} phase={phase} />
+                      </CurrencyScope>
                     </li>
                   ))}
                 </ul>
@@ -129,7 +134,7 @@ export function SpendPlansView() {
 }
 
 function SpendPlanCard({ plan, phase }: { plan: SpendPlan; phase: SpendPlanPhase }) {
-  const { t, tx, locale } = useI18n();
+  const { t, tx, locale, money } = useI18n();
   const summary = summarizeSpendPlan(plan);
 
   const days = planDays(plan).length;
@@ -157,7 +162,18 @@ function SpendPlanCard({ plan, phase }: { plan: SpendPlan; phase: SpendPlanPhase
         <ItemIcon value={plan.icon} size={24} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-semibold">{plan.title}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate font-semibold">{plan.title}</span>
+          {plan.collaborative || plan.ownerId ? (
+            <span
+              title={plan.ownerId ? t.spendPlans.teamJoined : t.spendPlans.teamBadge}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-chart-1/50 px-2 py-0.5 text-xs font-semibold"
+            >
+              <Users size={12} aria-hidden="true" />
+              {plan.ownerId ? t.spendPlans.teamJoined : null}
+            </span>
+          ) : null}
+        </span>
         <span className="block text-sm text-ink-muted">{when}</span>
         {countdown ? (
           <span className="block text-sm font-medium text-ink-soft">{countdown}</span>
@@ -177,15 +193,13 @@ function SpendPlanCard({ plan, phase }: { plan: SpendPlan; phase: SpendPlanPhase
         ) : null}
       </span>
       <span className="flex shrink-0 flex-col items-end">
-        <span className="num font-semibold">
-          {formatVnd(summary.expected, { compact: true, locale })}
-        </span>
+        <span className="num font-semibold">{money(summary.expected, { compact: true })}</span>
         <span className="text-xs text-ink-muted">
           {summary.hasActuals ? t.spendPlans.actual : t.spendPlans.expected}
         </span>
         {summary.deposit > 0 ? (
           <span className="num text-xs text-ink-soft">
-            {t.spendPlans.deposit} {formatVnd(summary.deposit, { compact: true, locale })}
+            {t.spendPlans.deposit} {money(summary.deposit, { compact: true })}
           </span>
         ) : null}
       </span>

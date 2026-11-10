@@ -5,7 +5,8 @@
    **Already have data?** Run the files in `migrations/` instead, oldest first. They only
    add what's missing and keep your data. `2026-11-09-trip-plans.sql` adds the trip
    itinerary, packing list, deposits, people and share links; until it has run, changes
-   to plans can't be saved.
+   to plans can't be saved. `2026-11-10-plan-together.sql` lets friends join a plan with
+   an invite link and edit it together (members table, permissions, join function).
 
 2. **Authentication → URL Configuration**
    - **Site URL**: your live address, e.g. `https://penny-xxx.vercel.app`

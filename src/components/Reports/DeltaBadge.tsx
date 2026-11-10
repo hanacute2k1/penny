@@ -1,6 +1,5 @@
 'use client';
 
-import { formatVnd } from '@/lib/helper/format';
 import { useI18n } from '@/contexts/I18nContext';
 
 export function DeltaBadge({
@@ -13,7 +12,7 @@ export function DeltaBadge({
   /** When true, increase is bad (e.g. expense up). */
   invert?: boolean;
 }) {
-  const { t, locale } = useI18n();
+  const { t, money } = useI18n();
 
   if (value === null) {
     return <span className="text-xs text-ink-muted">—</span>;
@@ -38,7 +37,7 @@ export function DeltaBadge({
     >
       <span>
         {sign}
-        {formatVnd(value, { compact: true, locale })}
+        {money(value, { compact: true })}
       </span>
       {percent !== null && percent !== undefined ? (
         <span className="opacity-80">

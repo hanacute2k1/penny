@@ -1,7 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { formatVnd, parseAmountInput } from '@/lib/helper/format';
+import {
+  formatAmountText,
+  parseAmountInput,
+  readAmountInput,
+  amountInputMode,
+} from '@/lib/helper/format';
 import { formatDayLabel } from '@/lib/helper/date';
 import { useI18n } from '@/contexts/I18nContext';
 import { sumLegs } from '@/lib/helper/transport';
@@ -39,14 +44,14 @@ export function DayAmountSheet({ open, ...props }: Props) {
 }
 
 function SheetBody({ date, legs, meterName, onClose, onSave, onClear }: Omit<Props, 'open'>) {
-  const { t, locale } = useI18n();
+  const { t, locale, money, currency, currencySymbol } = useI18n();
   const [drafts, setDrafts] = useState<DraftLeg[]>(() =>
     legs.length > 0
       ? legs.map((leg) => ({
           key: leg.id,
           from: leg.from,
           to: leg.to,
-          amountRaw: String(leg.amount),
+          amountRaw: formatAmountText(leg.amount, currency),
         }))
       : [emptyLeg()],
   );
@@ -56,9 +61,9 @@ function SheetBody({ date, legs, meterName, onClose, onSave, onClear }: Omit<Pro
       drafts.map((d) => ({
         from: d.from,
         to: d.to,
-        amount: parseAmountInput(d.amountRaw),
+        amount: parseAmountInput(d.amountRaw, currency),
       })),
-    [drafts],
+    [drafts, currency],
   );
   const total = sumLegs(parsedLegs);
   const canSave = total > 0;
@@ -122,20 +127,16 @@ function SheetBody({ date, legs, meterName, onClose, onSave, onClear }: Omit<Pro
               </div>
               <div className="mt-2 flex items-center gap-2 rounded-xl bg-surface px-3 py-2.5">
                 <input
-                  inputMode="numeric"
+                  inputMode={amountInputMode(currency)}
                   autoFocus={index === 0}
-                  value={
-                    draft.amountRaw
-                      ? formatVnd(parseAmountInput(draft.amountRaw)).replace('₫', '').trim()
-                      : ''
-                  }
+                  value={draft.amountRaw}
                   onChange={(e) =>
                     setDrafts((list) =>
                       list.map((d) =>
                         d.key === draft.key
                           ? {
                               ...d,
-                              amountRaw: String(parseAmountInput(e.target.value) || ''),
+                              amountRaw: readAmountInput(e.target.value, currency).text,
                             }
                           : d,
                       ),
@@ -144,7 +145,7 @@ function SheetBody({ date, legs, meterName, onClose, onSave, onClear }: Omit<Pro
                   className="num w-full bg-transparent outline-none"
                   placeholder={t.plans.amount}
                 />
-                <span className="text-ink-muted">{t.common.currencyUnit}</span>
+                <span className="text-ink-muted">{currencySymbol}</span>
               </div>
             </div>
           ))}
@@ -160,7 +161,7 @@ function SheetBody({ date, legs, meterName, onClose, onSave, onClear }: Omit<Pro
 
         <div className="mt-4 flex items-center justify-between rounded-2xl bg-paper px-4 py-3">
           <span className="text-sm font-semibold text-ink-soft">{t.transport.dayTotal}</span>
-          <span className="num text-lg font-semibold text-ink">{formatVnd(total, { locale })}</span>
+          <span className="num text-lg font-semibold text-ink">{money(total)}</span>
         </div>
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">

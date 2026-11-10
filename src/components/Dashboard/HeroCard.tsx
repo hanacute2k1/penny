@@ -3,7 +3,6 @@ import { Amount } from '@/components/Base/Amount';
 import { Icon } from '@/components/Base/Icon';
 import { ProgressBar } from '@/components/Base/ProgressBar';
 import { useI18n } from '@/contexts/I18nContext';
-import { formatVnd } from '@/lib/helper/format';
 import type { MonthView } from '@/lib/type';
 
 type Props = {
@@ -14,8 +13,8 @@ type Props = {
 
 /** Month at a glance: what's left of the budget, income/expense and the two add buttons. */
 export function HeroCard({ view, yearMonth, onAdd }: Props) {
-  const { t, tx, locale } = useI18n();
-  const compact = (value: number) => formatVnd(value, { compact: true, locale });
+  const { t, tx, money } = useI18n();
+  const compact = (value: number) => money(value, { compact: true });
 
   const hasBudget = view.budgetTotal > 0;
   const overBy = hasBudget && view.budgetRemaining < 0 ? -view.budgetRemaining : 0;

@@ -1,4 +1,5 @@
 import type { Locale } from '@/lib/i18n';
+import { toMajor, type CurrencyCode } from '@/lib/currency';
 import { compactNumber } from './format';
 import { inMonth } from './date';
 import type { TransportEntry, TransportLeg, TransportMeter } from '@/lib/type';
@@ -99,7 +100,11 @@ export function sumAllTransportMonth(entries: TransportEntry[], yearMonth: strin
 }
 
 /** Compact label for calendar cells (e.g. 78k, 1.2tr, 12만). */
-export function compactDayAmount(amount: number, locale: Locale = 'vi'): string {
+export function compactDayAmount(
+  amount: number,
+  locale: Locale = 'vi',
+  currency: CurrencyCode = 'VND',
+): string {
   if (amount <= 0) return '';
-  return compactNumber(amount, locale);
+  return compactNumber(toMajor(amount, currency), locale);
 }

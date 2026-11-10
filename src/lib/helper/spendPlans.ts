@@ -209,6 +209,11 @@ export function itineraryByDay(plan: Pick<SpendPlan, 'startDate' | 'endDate' | '
   };
 }
 
+/** Path that joins a plan to edit it together (needs an account or guest). */
+export function joinPath(inviteId: string): string {
+  return `/join/${inviteId}`;
+}
+
 /** Path of a plan's public read-only page. */
 export function sharePath(shareId: string): string {
   return `/share/${shareId}`;

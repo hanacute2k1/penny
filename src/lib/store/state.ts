@@ -101,15 +101,20 @@ export function diffState(from: AppState, to: AppState): SyncRequest | null {
 
   for (const name of COLLECTION_NAMES) {
     const key = COLLECTIONS[name].key;
+    // Plans friends shared with me aren't mine to save or delete here.
+    const rowsOf = (state: AppState) =>
+      (state[name] as unknown as Record<string, unknown>[]).filter((row) => !row.ownerId);
     const before = new Map<string, string>();
-    for (const row of from[name] as unknown as Record<string, unknown>[]) {
+    for (const row of rowsOf(from)) {
       before.set(String(row[key]), JSON.stringify(row));
     }
     const seen = new Set<string>();
     const rowsToUpsert: unknown[] = [];
-    for (const row of to[name] as unknown as Record<string, unknown>[]) {
+    for (const row of rowsOf(to)) {
       const k = String(row[key]);
       seen.add(k);
+      // My plans shared with friends are saved through the team-plan path (merged).
+      if (row.collaborative) continue;
       if (before.get(k) !== JSON.stringify(row)) rowsToUpsert.push(row);
     }
     const keysToDelete = [...before.keys()].filter((k) => !seen.has(k));

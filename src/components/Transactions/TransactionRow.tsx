@@ -1,6 +1,7 @@
 'use client';
 
-import { formatVnd } from '@/lib/helper/format';
+import { formatAmountText } from '@/lib/helper/format';
+
 import { useI18n } from '@/contexts/I18nContext';
 import { categoryTint } from '@/lib/helper/categoryTone';
 import type { Category, Transaction } from '@/lib/type';
@@ -15,7 +16,7 @@ export function TransactionRow({
   category?: Category;
   onClick?: () => void;
 }) {
-  const { t, categoryName } = useI18n();
+  const { t, categoryName, currency, currencySymbol } = useI18n();
   const isExpense = tx.type === 'expense';
   const label = category ? categoryName(category) : undefined;
   const title = tx.note || label || t.transactions.fallbackName;
@@ -46,8 +47,8 @@ export function TransactionRow({
       </span>
       <span className={`num shrink-0 font-semibold ${isExpense ? 'text-ink' : 'text-income'}`}>
         {isExpense ? '−' : '+'}
-        {formatVnd(tx.amount).replace('₫', '').trim()}
-        {t.common.currencyUnit}
+        {formatAmountText(tx.amount, currency)}
+        {currencySymbol}
       </span>
     </button>
   );

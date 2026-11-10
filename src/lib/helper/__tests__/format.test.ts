@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { compactNumber, formatVnd, parseAmountInput } from '../format';
+import {
+  compactNumber,
+  formatAmountText,
+  formatMoney,
+  parseAmountInput,
+  readAmountInput,
+} from '../format';
 import { summarizeSpendPlan } from '../spendPlans';
 
 describe('compactNumber', () => {
@@ -12,13 +18,53 @@ describe('compactNumber', () => {
   });
 
   it('keeps the sign in compact money', () => {
-    expect(formatVnd(-45_000, { compact: true, locale: 'vi' })).toBe('-45k');
+    expect(formatMoney(-45_000, { currency: 'VND', compact: true, locale: 'vi' })).toBe('-45k');
   });
 });
 
-it('parseAmountInput keeps digits only', () => {
-  expect(parseAmountInput('1.200.000 ₫')).toBe(1_200_000);
-  expect(parseAmountInput('abc')).toBe(0);
+describe('money in different currencies', () => {
+  it('writes đồng the same as before', () => {
+    expect(formatMoney(1_200_000, { currency: 'VND', locale: 'en' }).replace(/\s/g, ' ')).toBe(
+      '1.200.000 ₫',
+    );
+  });
+
+  it('stores cents and shows them only when there are some', () => {
+    expect(formatMoney(1250, { currency: 'USD', locale: 'en' })).toBe('$12.50');
+    expect(formatMoney(1200, { currency: 'USD', locale: 'en' })).toBe('$12');
+    expect(formatMoney(10_000, { currency: 'KRW', locale: 'ko' })).toBe('₩10,000');
+    expect(formatMoney(1250, { currency: 'USD', locale: 'vi' }).replace(/\s/g, ' ')).toBe(
+      '12,50 $',
+    );
+    // Compact labels count in the main unit: $4,500 → 5k (like 45k for đồng).
+    expect(formatMoney(450_000, { currency: 'USD', compact: true, locale: 'en' })).toBe('5k');
+  });
+
+  it('groups digits for amount fields', () => {
+    expect(formatAmountText(1_200_000, 'VND')).toBe('1.200.000');
+    expect(formatAmountText(123_456, 'USD')).toBe('1,234.56');
+    expect(formatAmountText(120_000, 'USD')).toBe('1,200');
+    expect(formatAmountText(5_000, 'KRW')).toBe('5,000');
+  });
+});
+
+describe('reading typed amounts', () => {
+  it('keeps digits only for currencies without cents', () => {
+    expect(parseAmountInput('1.200.000 ₫', 'VND')).toBe(1_200_000);
+    expect(parseAmountInput('abc', 'VND')).toBe(0);
+    expect(readAmountInput('', 'VND')).toEqual({ value: null, text: '' });
+    expect(readAmountInput('1200000', 'VND')).toEqual({ value: 1_200_000, text: '1.200.000' });
+  });
+
+  it('takes cents with a point or a comma, keeping what is typed', () => {
+    expect(readAmountInput('12.', 'USD')).toEqual({ value: 1200, text: '12.' });
+    expect(readAmountInput('12.5', 'USD')).toEqual({ value: 1250, text: '12.5' });
+    expect(readAmountInput('12,5', 'USD')).toEqual({ value: 1250, text: '12.5' });
+    expect(readAmountInput('1,234.567', 'USD')).toEqual({ value: 123_456, text: '1,234.56' });
+    // A comma with three digits after it groups thousands.
+    expect(readAmountInput('1,234', 'USD')).toEqual({ value: 123_400, text: '1,234' });
+    expect(readAmountInput('.5', 'USD')).toEqual({ value: 50, text: '0.5' });
+  });
 });
 
 describe('summarizeSpendPlan', () => {

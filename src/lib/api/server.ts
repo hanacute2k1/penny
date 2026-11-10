@@ -27,11 +27,17 @@ export async function requireUser(): Promise<
   return { supabase, userId: data.user.id };
 }
 
-/** Every collection for this user, in the app's shape. */
-export async function loadAll(supabase: SupabaseClient) {
+/**
+ * Every collection for this user, in the app's shape. Filtered by owner, not just
+ * left to RLS: RLS also lets you read plans friends shared with you.
+ */
+export async function loadAll(supabase: SupabaseClient, userId: string) {
   const results = await Promise.all(
     COLLECTION_NAMES.map(async (name) => {
-      const { data, error } = await supabase.from(COLLECTIONS[name].table).select('*');
+      const { data, error } = await supabase
+        .from(COLLECTIONS[name].table)
+        .select('*')
+        .eq('user_id', userId);
       if (error) throw new Error(`${name}: ${error.message}`);
       return [name, (data ?? []).map(fromRow)] as const;
     }),
@@ -39,8 +45,15 @@ export async function loadAll(supabase: SupabaseClient) {
   return Object.fromEntries(results) as Record<CollectionName, Record<string, unknown>[]>;
 }
 
-export async function loadCollection(supabase: SupabaseClient, name: CollectionName) {
-  const { data, error } = await supabase.from(COLLECTIONS[name].table).select('*');
+export async function loadCollection(
+  supabase: SupabaseClient,
+  userId: string,
+  name: CollectionName,
+) {
+  const { data, error } = await supabase
+    .from(COLLECTIONS[name].table)
+    .select('*')
+    .eq('user_id', userId);
   if (error) throw new Error(error.message);
   return (data ?? []).map(fromRow);
 }
@@ -65,6 +78,7 @@ export async function upsertRows(
   name: CollectionName,
   rows: Record<string, unknown>[],
 ) {
+  if (name === 'spendPlans') rows = await withoutSharedPlans(supabase, userId, rows);
   if (!rows.length) return;
   const now = new Date().toISOString();
   const payload = rows.map((row) => ({ ...toRow(row), user_id: userId, updated_at: now }));
@@ -92,4 +106,29 @@ export async function deleteRows(
 /** Resolves a `[collection]` route segment, or a 404 response. */
 export function collectionFromParam(value: string): CollectionName | NextResponse {
   return isCollectionName(value) ? value : jsonError(404, `Unknown collection "${value}"`);
+}
+
+/**
+ * Plans shared with friends are saved through /api/v1/team-plans, which merges
+ * everyone's edits. A plain upsert would overwrite them, so those rows are left
+ * out here (for example from a tab still running an older version of the app).
+ */
+async function withoutSharedPlans(
+  supabase: SupabaseClient,
+  userId: string,
+  rows: Record<string, unknown>[],
+) {
+  const { data, error } = await supabase
+    .from('spend_plans')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('collaborative', true)
+    .in(
+      'id',
+      rows.map((row) => String(row.id)),
+    );
+  // Before the migration there is no such column, and no shared plans either.
+  if (error) return rows;
+  const shared = new Set(data.map((row) => String(row.id)));
+  return rows.filter((row) => !shared.has(String(row.id)));
 }

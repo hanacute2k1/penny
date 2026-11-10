@@ -7,7 +7,6 @@ import { TransactionRow } from '@/components/Transactions/TransactionRow';
 import { useI18n } from '@/contexts/I18nContext';
 import { categoryTone } from '@/lib/helper/categoryTone';
 import { labelYearMonth } from '@/lib/helper/date';
-import { formatVnd } from '@/lib/helper/format';
 import {
   countdownLabel,
   daysUntilPlan,
@@ -92,7 +91,7 @@ export function RecentCard({
 }
 
 export function SpendPlansCard({ plans, today }: { plans: SpendPlan[]; today: string }) {
-  const { t, tx, locale } = useI18n();
+  const { t, tx, money } = useI18n();
   return (
     <section data-module="plan" className="panel p-5 md:p-6">
       <CardHeader
@@ -125,9 +124,8 @@ export function SpendPlansCard({ plans, today }: { plans: SpendPlan[]; today: st
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-0.5">
                   <span className="num font-semibold">
-                    {formatVnd(summary.hasActuals ? summary.actual : summary.estimate, {
+                    {money(summary.hasActuals ? summary.actual : summary.estimate, {
                       compact: true,
-                      locale,
                     })}
                   </span>
                   {summary.hasActuals ? (
@@ -154,7 +152,7 @@ export function CategoriesCard({
   items: CategoryProgress[];
   catMap: CatMap;
 }) {
-  const { t, locale, categoryName } = useI18n();
+  const { t, categoryName, money } = useI18n();
   return (
     <section className="panel p-5 md:p-6">
       <CardHeader
@@ -186,9 +184,9 @@ export function CategoriesCard({
                   </span>
                   <span className="num shrink-0 text-sm text-ink-soft">
                     <span className={`font-semibold ${over ? 'text-coral' : 'text-ink'}`}>
-                      {formatVnd(c.spent, { compact: true, locale })}
+                      {money(c.spent, { compact: true })}
                     </span>
-                    {c.limit > 0 ? ` / ${formatVnd(c.limit, { compact: true, locale })}` : null}
+                    {c.limit > 0 ? ` / ${money(c.limit, { compact: true })}` : null}
                   </span>
                 </div>
                 <ProgressBar percent={c.percent} color={categoryTone(cat)} />
@@ -210,7 +208,7 @@ export function FixedCostsCard({
   total: number;
   catMap: CatMap;
 }) {
-  const { t, locale } = useI18n();
+  const { t, money } = useI18n();
   return (
     <section className="panel p-5 md:p-6">
       <CardHeader
@@ -234,13 +232,13 @@ export function FixedCostsCard({
                 <span className="truncate">{rule.name}</span>
               </span>
               <span className="num shrink-0 font-medium">
-                {formatVnd(rule.amount, { compact: true, locale })}
+                {money(rule.amount, { compact: true })}
               </span>
             </li>
           ))}
           <li className="flex items-center justify-between gap-3 pt-3 font-semibold">
             <span>{t.fixed.totalMonthly}</span>
-            <span className="num">{formatVnd(total, { compact: true, locale })}</span>
+            <span className="num">{money(total, { compact: true })}</span>
           </li>
         </ul>
       )}
@@ -258,7 +256,7 @@ export function MonthPlansCard({
   isFutureMonth: boolean;
   catMap: CatMap;
 }) {
-  const { t, locale } = useI18n();
+  const { t, locale, money } = useI18n();
   return (
     <section className="panel p-5 md:p-6">
       <CardHeader
@@ -289,7 +287,7 @@ export function MonthPlansCard({
               className={`num shrink-0 font-medium ${plan.type === 'income' ? 'text-income' : ''}`}
             >
               {plan.type === 'expense' ? '−' : '+'}
-              {formatVnd(plan.amount, { compact: true, locale })}
+              {money(plan.amount, { compact: true })}
             </span>
           </li>
         ))}

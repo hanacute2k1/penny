@@ -1,5 +1,7 @@
 'use client';
 
+import { formatAmountText } from '@/lib/helper/format';
+
 import { LoadingText } from '@/components/Base/LoadingText';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -7,7 +9,6 @@ import { useMonth } from '@/hooks/useMonth';
 import { useStore } from '@/contexts/StoreContext';
 import { useI18n } from '@/contexts/I18nContext';
 import { inMonth, formatDayHeading } from '@/lib/helper/date';
-import { formatVnd } from '@/lib/helper/format';
 import { AddFab } from '@/components/Base/AddFab';
 import { Icon } from '@/components/Base/Icon';
 import { TransactionRow } from './TransactionRow';
@@ -17,7 +18,7 @@ import { iconText } from '@/lib/helper/icons';
 
 export function TransactionsView() {
   const { yearMonth } = useMonth();
-  const { t, locale, categoryName } = useI18n();
+  const { t, locale, categoryName, currency, currencySymbol } = useI18n();
   const searchParams = useSearchParams();
   const categoryFilter = searchParams.get('category') ?? 'all';
   const { ready, categories, transactions, addTransaction, updateTransaction, deleteTransaction } =
@@ -80,8 +81,8 @@ export function TransactionsView() {
           <p className="mt-1 text-[0.9375rem] text-ink-soft">
             {t.transactions.filterTotal}{' '}
             <span className="num font-semibold text-ink">
-              {formatVnd(Math.abs(total)).replace('₫', '').trim()}
-              {t.common.currencyUnit}
+              {formatAmountText(Math.abs(total), currency)}
+              {currencySymbol}
             </span>
           </p>
         </div>

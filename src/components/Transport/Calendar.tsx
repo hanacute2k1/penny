@@ -5,7 +5,6 @@ import { compactDayAmount, formatLegRoute } from '@/lib/helper/transport';
 import { useI18n } from '@/contexts/I18nContext';
 import type { Locale } from '@/lib/i18n';
 import { useEffect, useRef, useState } from 'react';
-import { formatVnd } from '@/lib/helper/format';
 import type { TransportEntry } from '@/lib/type';
 
 type GridProps = {
@@ -21,7 +20,7 @@ const WEEKDAYS: Record<Locale, string[]> = {
 };
 
 export function CalendarGrid({ yearMonth, amounts, onSelectDay }: GridProps) {
-  const { locale } = useI18n();
+  const { locale, currency } = useI18n();
   const cells = monthCalendarCells(yearMonth, 1);
   const today = todayIso();
   const labels = WEEKDAYS[locale];
@@ -65,7 +64,7 @@ export function CalendarGrid({ yearMonth, amounts, onSelectDay }: GridProps) {
                     isToday ? 'text-on-btn/90' : 'text-ink'
                   }`}
                 >
-                  {compactDayAmount(amount, locale)}
+                  {compactDayAmount(amount, locale, currency)}
                 </span>
               ) : (
                 <span className="mt-0.5 h-2.5" />
@@ -84,7 +83,7 @@ type StripProps = {
 };
 
 export function CalendarStrip({ yearMonth, entriesByDate }: StripProps) {
-  const { t, locale } = useI18n();
+  const { t, locale, money } = useI18n();
   const dates = monthDayDates(yearMonth);
   const today = todayIso();
   const todayRef = useRef<HTMLLIElement>(null);
@@ -125,7 +124,7 @@ export function CalendarStrip({ yearMonth, entriesByDate }: StripProps) {
                   {isToday ? t.transport.today : formatDayLabel(date, locale)}
                 </p>
                 <p className="num mt-1 text-base font-semibold text-ink">
-                  {hasSpend ? `-${formatVnd(amount, { locale })}` : t.transport.noSpend}
+                  {hasSpend ? `-${money(amount)}` : t.transport.noSpend}
                 </p>
               </div>
               <span
@@ -150,7 +149,7 @@ export function CalendarStrip({ yearMonth, entriesByDate }: StripProps) {
                           {route || t.transport.unnamedLeg}
                         </span>
                         <span className="num shrink-0 font-semibold text-ink">
-                          -{formatVnd(leg.amount, { compact: true, locale })}
+                          -{money(leg.amount, { compact: true })}
                         </span>
                       </div>
                     );
@@ -159,7 +158,7 @@ export function CalendarStrip({ yearMonth, entriesByDate }: StripProps) {
                 {hasSpend && legs.length > 1 ? (
                   <div className="flex items-center justify-between border-t border-line pt-2 text-sm font-semibold">
                     <span>{t.transport.dayTotal}</span>
-                    <span className="num text-ink">-{formatVnd(amount, { locale })}</span>
+                    <span className="num text-ink">-{money(amount)}</span>
                   </div>
                 ) : null}
               </div>

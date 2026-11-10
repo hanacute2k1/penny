@@ -10,7 +10,6 @@ import { SPEND_PLAN_TEMPLATES } from '@/lib/helper/spendPlans';
 import { ICON_CHOICES } from '@/lib/helper/icons';
 import { IconPicker } from '@/components/Base/IconPicker';
 import { ItemIcon } from '@/components/Base/ItemIcon';
-import { formatVnd } from '@/lib/helper/format';
 import { Icon } from '@/components/Base/Icon';
 import { AmountInput } from '@/components/Base/AmountInput';
 import { CategorySelect } from './shared';
@@ -38,7 +37,7 @@ export function SpendPlanSheet({ open, ...props }: SheetProps & { open: boolean 
 }
 
 function SheetBody({ onClose, initial, categories, onSave }: SheetProps) {
-  const { t, tx, locale } = useI18n();
+  const { t, tx, money } = useI18n();
   const [title, setTitle] = useState(initial?.title ?? '');
   const [icon, setIcon] = useState<string>(initial?.icon ?? ICON_CHOICES.plan[0]);
   const [startDate, setStartDate] = useState(initial?.startDate ?? inAWeek);
@@ -199,7 +198,7 @@ function SheetBody({ onClose, initial, categories, onSave }: SheetProps) {
       <div className="mb-5">
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <p className="field-label">{t.spendPlans.items}</p>
-          <p className="num text-sm font-semibold">{formatVnd(total, { locale })}</p>
+          <p className="num text-sm font-semibold">{money(total)}</p>
         </div>
         <ul className="space-y-2">
           {items.map((item, index) =>

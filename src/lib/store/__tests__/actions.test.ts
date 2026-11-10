@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as actions from '../actions';
-import { createStarterState, type AppState } from '../state';
+import { createStarterState, diffState, type AppState } from '../state';
 
 const NOW = new Date('2026-11-05T10:00:00Z');
 
@@ -249,9 +249,56 @@ describe('spend plans', () => {
     const id = actions.newShareId();
     expect(id).toMatch(/^[a-f0-9]{32}$/);
     const p = plan();
-    let s = actions.setPlanShare(actions.addSpendPlan(base(), p), p.id, id);
-    expect(s.spendPlans[0].shareId).toBe(id);
+    let s = actions.setPlanShare(actions.addSpendPlan(base(), p), p.id, id, 'USD');
+    expect(s.spendPlans[0]).toMatchObject({ shareId: id, currency: 'USD' });
     s = actions.setPlanShare(s, p.id, undefined);
     expect(s.spendPlans[0].shareId).toBeUndefined();
+  });
+});
+
+describe('planning together', () => {
+  const plan = () =>
+    actions.newSpendPlan({
+      title: 'Đà Lạt',
+      icon: '',
+      startDate: '2026-11-20',
+      people: 3,
+      items: [],
+    });
+
+  it('turns on merging with an invite link and keeps the currency', () => {
+    const p = plan();
+    let s = actions.addSpendPlan(base(), p);
+    s = actions.startTeamPlan(s, p.id, 'a'.repeat(32), 'USD');
+    expect(s.spendPlans[0]).toMatchObject({
+      collaborative: true,
+      inviteId: 'a'.repeat(32),
+      currency: 'USD',
+    });
+    s = actions.setTeamInvite(s, p.id, undefined);
+    expect(s.spendPlans[0]).toMatchObject({ collaborative: true, inviteId: undefined });
+  });
+
+  it("tells a friend's plan apart from mine with the same id", () => {
+    const mine = plan();
+    const theirs = { ...mine, title: 'Their trip', ownerId: 'friend' };
+    let s = actions.putPlan(actions.addSpendPlan(base(), mine), theirs);
+    expect(s.spendPlans.map((p) => p.title)).toEqual(['Đà Lạt', 'Their trip']);
+    s = actions.putPlan(s, { ...theirs, title: 'Renamed' });
+    expect(s.spendPlans.map((p) => p.title)).toEqual(['Đà Lạt', 'Renamed']);
+    s = actions.dropJoinedPlan(s, mine.id, 'friend');
+    expect(s.spendPlans.map((p) => p.title)).toEqual(['Đà Lạt']);
+  });
+
+  it("never saves friends' plans or my shared ones through the normal sync", () => {
+    const own = plan();
+    const shared = { ...plan(), collaborative: true };
+    const joined = { ...plan(), ownerId: 'friend' };
+    const before = actions.addSpendPlan(base(), own);
+    const after = { ...before, spendPlans: [{ ...own, title: 'x' }, shared, joined] };
+    const changes = diffState(before, after);
+    expect(changes?.upserts?.spendPlans?.map((p) => (p as { id: string }).id)).toEqual([own.id]);
+    // Leaving a friend's plan doesn't delete it for them.
+    expect(diffState(after, { ...after, spendPlans: [after.spendPlans[0], shared] })).toBeNull();
   });
 });

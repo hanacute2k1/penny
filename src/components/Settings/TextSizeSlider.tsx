@@ -4,7 +4,6 @@ import { ItemIcon } from '@/components/Base/ItemIcon';
 import { useRef, useState, type CSSProperties } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { formatVnd } from '@/lib/helper/format';
 import {
   TEXT_SIZE_DEFAULT,
   TEXT_SIZE_MAX,
@@ -31,7 +30,7 @@ const percentOf = (value: number) =>
  * A− / A+ step one notch for people who find dragging hard.
  */
 export function TextSizeSlider() {
-  const { t, locale } = useI18n();
+  const { t, money } = useI18n();
   const { textSize, setTextSize } = useTheme();
   /** The track is the anchor: it must stay under the finger when the page re-flows. */
   const trackRef = useRef<HTMLInputElement>(null);
@@ -74,12 +73,10 @@ export function TextSizeSlider() {
       >
         <div style={{ fontSize: `${(BASE_PX * shown) / 100}px` }} className="leading-snug">
           <p className="text-[0.875em] text-ink-soft">{t.dashboard.remainingBudget}</p>
-          <p className="num text-[1.75em] font-semibold leading-tight">
-            {formatVnd(4_473_000, { locale })}
-          </p>
+          <p className="num text-[1.75em] font-semibold leading-tight">{money(4_473_000)}</p>
           <p className="mt-0.5 flex items-center gap-[0.35em] text-[0.875em] text-ink-muted">
             <ItemIcon value="food" size={(BASE_PX * shown * 0.875) / 100} />
-            {t.categoryNames['c-food']} · −{formatVnd(45_000, { locale })}
+            {t.categoryNames['c-food']} · −{money(45_000)}
           </p>
         </div>
       </div>

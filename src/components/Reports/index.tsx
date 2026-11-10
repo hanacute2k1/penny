@@ -7,7 +7,6 @@ import { useStore } from '@/contexts/StoreContext';
 import { useI18n } from '@/contexts/I18nContext';
 import { daysInMonth } from '@/lib/helper/date';
 import { dailyExpenseSeries } from '@/lib/helper/aggregations';
-import { formatVnd } from '@/lib/helper/format';
 import { Amount } from '@/components/Base/Amount';
 import { categoryTone } from '@/lib/helper/categoryTone';
 import { YearReviewView } from './YearReview';
@@ -17,7 +16,7 @@ type ReportTab = 'month' | 'year';
 
 export function ReportsView() {
   const { yearMonth } = useMonth();
-  const { t, tx, categoryName } = useI18n();
+  const { t, tx, categoryName, money } = useI18n();
   const { ready, transactions, categories, getMonthView } = useStore();
   const [tab, setTab] = useState<ReportTab>('year');
 
@@ -133,7 +132,7 @@ export function ReportsView() {
                     height: `${Math.max((v / maxDay) * 100, v > 0 ? 6 : 2)}%`,
                     opacity: v > 0 ? 1 : 0.25,
                   }}
-                  title={tx(t.reports.day, { day: i + 1, amount: formatVnd(v) })}
+                  title={tx(t.reports.day, { day: i + 1, amount: money(v) })}
                 />
               ))}
             </div>

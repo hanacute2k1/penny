@@ -1,6 +1,5 @@
 'use client';
 
-import { formatVnd } from '@/lib/helper/format';
 import { useI18n } from '@/contexts/I18nContext';
 
 export function Amount({
@@ -14,7 +13,7 @@ export function Amount({
   tone?: 'ink' | 'accent' | 'income' | 'coral' | 'muted';
   compact?: boolean;
 }) {
-  const { locale } = useI18n();
+  const { money } = useI18n();
   const sizeClass =
     size === 'xl'
       ? 'text-[min(2.5rem,10.5vw)] leading-tight md:text-5xl'
@@ -37,7 +36,7 @@ export function Amount({
 
   return (
     <span className={`num font-semibold tracking-tight ${sizeClass} ${toneClass}`}>
-      {formatVnd(value, { compact, locale })}
+      {money(value, { compact })}
     </span>
   );
 }

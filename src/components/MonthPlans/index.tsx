@@ -6,7 +6,12 @@ import Link from 'next/link';
 import { useStore } from '@/contexts/StoreContext';
 import { useI18n } from '@/contexts/I18nContext';
 import { currentYearMonth, labelYearMonth, shiftYearMonth } from '@/lib/helper/date';
-import { formatVnd, parseAmountInput } from '@/lib/helper/format';
+import {
+  formatAmountText,
+  parseAmountInput,
+  readAmountInput,
+  amountInputMode,
+} from '@/lib/helper/format';
 import { upcomingPlans } from '@/lib/helper/monthPlans';
 import { categoryTint } from '@/lib/helper/categoryTone';
 import { ConfirmDialog } from '@/components/Base/ConfirmDialog';
@@ -28,7 +33,7 @@ function emptyForm(targetMonth: string): MonthPlanInput {
 
 export function PlansView() {
   const { ready, categories, monthPlans, addPlan, updatePlan, deletePlan } = useStore();
-  const { t, tx, locale, categoryName } = useI18n();
+  const { t, tx, locale, categoryName, money, currency, currencySymbol } = useI18n();
   const [nowMonth] = useState(currentYearMonth);
   const [form, setForm] = useState(() => emptyForm(shiftYearMonth(currentYearMonth(), 1)));
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -78,12 +83,12 @@ export function PlansView() {
       targetMonth: plan.targetMonth,
       dayOfMonth: plan.dayOfMonth,
     });
-    setAmountRaw(String(plan.amount));
+    setAmountRaw(formatAmountText(plan.amount, currency));
     setShowForm(true);
   }
 
   function submit() {
-    const amount = parseAmountInput(amountRaw) || form.amount;
+    const amount = parseAmountInput(amountRaw, currency) || form.amount;
     if (!form.title.trim() || amount <= 0 || !form.categoryId) return;
     const payload: MonthPlanInput = {
       ...form,
@@ -150,15 +155,13 @@ export function PlansView() {
             <span className="field-label mb-1.5 block">{t.plans.amount}</span>
             <div className="flex items-center gap-2 rounded-xl bg-paper px-3 py-2.5">
               <input
-                inputMode="numeric"
-                value={
-                  amountRaw ? formatVnd(parseAmountInput(amountRaw)).replace('₫', '').trim() : ''
-                }
-                onChange={(e) => setAmountRaw(String(parseAmountInput(e.target.value) || ''))}
+                inputMode={amountInputMode(currency)}
+                value={amountRaw}
+                onChange={(e) => setAmountRaw(readAmountInput(e.target.value, currency).text)}
                 className="num w-full bg-transparent outline-none"
                 placeholder="0"
               />
-              <span className="text-ink-muted">{t.common.currencyUnit}</span>
+              <span className="text-ink-muted">{currencySymbol}</span>
             </div>
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -293,7 +296,7 @@ export function PlansView() {
                       }`}
                     >
                       {plan.type === 'expense' ? '-' : '+'}
-                      {formatVnd(plan.amount, { locale })}
+                      {money(plan.amount)}
                     </p>
                   </div>
                 </div>

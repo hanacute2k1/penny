@@ -3,7 +3,12 @@
 import { Sheet } from '@/components/Base/Sheet';
 import { CATEGORY_IDS, STORAGE_KEYS } from '@/lib/constants';
 import { useMemo, useState } from 'react';
-import { formatVnd, parseAmountInput } from '@/lib/helper/format';
+import {
+  formatAmountText,
+  parseAmountInput,
+  readAmountInput,
+  amountInputMode,
+} from '@/lib/helper/format';
 import { useI18n } from '@/contexts/I18nContext';
 import { ConfirmDialog } from '@/components/Base/ConfirmDialog';
 import { Icon } from '@/components/Base/Icon';
@@ -64,10 +69,12 @@ function SheetBody({
   onSave,
   onDelete,
 }: Omit<Props, 'open'>) {
-  const { t, tx, categoryName } = useI18n();
+  const { t, tx, categoryName, currency, currencySymbol } = useI18n();
   const { transactions, upsertCategory, deleteCategory } = useStore();
   const [type, setType] = useState<'expense' | 'income'>(initial?.type ?? defaultType);
-  const [amountRaw, setAmountRaw] = useState(initial ? String(initial.amount) : '');
+  const [amountRaw, setAmountRaw] = useState(
+    initial ? formatAmountText(initial.amount, currency) : '',
+  );
   const [pickedCategoryId, setCategoryId] = useState(initial?.categoryId ?? '');
   const [date, setDate] = useState(initial?.date ?? localToday);
   // An existing item filed under "Other" with a note was typed in; open it that way.
@@ -118,7 +125,7 @@ function SheetBody({
     setCategoryId(id); // a brand-new category is what the user wants to use
   }
 
-  const amount = parseAmountInput(amountRaw);
+  const amount = parseAmountInput(amountRaw, currency);
   const fallbackId = FALLBACK_CATEGORY[type];
   const fallback = categories.find((c) => c.id === fallbackId);
   const canSave = amount > 0 && (mode === 'custom' ? note.trim().length > 0 : Boolean(categoryId));
@@ -191,15 +198,15 @@ function SheetBody({
           <div className="flex items-center gap-2 rounded-2xl border border-line bg-paper px-4 py-3 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25">
             <input
               autoFocus
-              inputMode="numeric"
-              value={amountRaw ? formatVnd(amount).replace('₫', '').trim() : ''}
-              onChange={(e) => setAmountRaw(String(parseAmountInput(e.target.value) || ''))}
+              inputMode={amountInputMode(currency)}
+              value={amountRaw}
+              onChange={(e) => setAmountRaw(readAmountInput(e.target.value, currency).text)}
               placeholder="0"
               className={`num w-full bg-transparent text-[2rem] font-semibold outline-none placeholder:text-ink-muted/50 ${
                 type === 'income' ? 'text-income' : ''
               }`}
             />
-            <span className="text-lg font-medium text-ink-muted">{t.common.currencyUnit}</span>
+            <span className="text-lg font-medium text-ink-muted">{currencySymbol}</span>
           </div>
         </label>
 

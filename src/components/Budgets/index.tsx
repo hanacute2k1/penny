@@ -5,7 +5,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMonth } from '@/hooks/useMonth';
 import { useStore } from '@/contexts/StoreContext';
 import { useI18n } from '@/contexts/I18nContext';
-import { formatVnd, parseAmountInput } from '@/lib/helper/format';
+import {
+  formatAmountText,
+  parseAmountInput,
+  readAmountInput,
+  amountInputMode,
+} from '@/lib/helper/format';
 import { Amount } from '@/components/Base/Amount';
 import { ProgressBar } from '@/components/Base/ProgressBar';
 import { categoryTone } from '@/lib/helper/categoryTone';
@@ -17,7 +22,7 @@ import { ItemIcon } from '@/components/Base/ItemIcon';
 
 export function BudgetsView() {
   const { yearMonth } = useMonth();
-  const { t, tx, locale, categoryName } = useI18n();
+  const { t, tx, categoryName, money, currency, currencySymbol } = useI18n();
   const {
     ready,
     categories,
@@ -44,10 +49,10 @@ export function BudgetsView() {
     for (const c of expenseCats) {
       const fromBudget = budget?.categories.find((b) => b.categoryId === c.id);
       const fromView = view.categories.find((v) => v.categoryId === c.id);
-      map[c.id] = String(fromBudget?.limitAmount ?? fromView?.limit ?? 0);
+      map[c.id] = formatAmountText(fromBudget?.limitAmount ?? fromView?.limit ?? 0, currency);
     }
     return map;
-  }, [budget, expenseCats, view.categories]);
+  }, [budget, expenseCats, view.categories, currency]);
 
   /**
    * Unsaved typing, tied to the saved values it started from — when those change
@@ -109,7 +114,7 @@ export function BudgetsView() {
   }
 
   const draftTotal = expenseCats.reduce(
-    (s, c) => s + (parseAmountInput(limits[c.id] ?? '0') || 0),
+    (s, c) => s + (parseAmountInput(limits[c.id] ?? '0', currency) || 0),
     0,
   );
 
@@ -118,7 +123,7 @@ export function BudgetsView() {
       yearMonth,
       expenseCats.map((c) => ({
         categoryId: c.id,
-        limitAmount: parseAmountInput(limits[c.id] ?? '0') || 0,
+        limitAmount: parseAmountInput(limits[c.id] ?? '0', currency) || 0,
       })),
     );
     setSavedFlash(true);
@@ -148,8 +153,8 @@ export function BudgetsView() {
           <Amount value={draftTotal} size="xl" tone="ink" />
           <p className="mt-2 text-sm text-ink-soft">
             {tx(t.budgets.spentLeft, {
-              spent: formatVnd(view.expense, { compact: true, locale }),
-              left: formatVnd(draftTotal - view.expense, { compact: true, locale }),
+              spent: money(view.expense, { compact: true }),
+              left: money(draftTotal - view.expense, { compact: true }),
             })}
           </p>
           <button
@@ -164,7 +169,7 @@ export function BudgetsView() {
         <div className="grid gap-3 sm:grid-cols-2 lg:col-span-8">
           {expenseCats.map((c) => {
             const spent = view.categories.find((v) => v.categoryId === c.id)?.spent ?? 0;
-            const limit = parseAmountInput(limits[c.id] ?? '0') || 0;
+            const limit = parseAmountInput(limits[c.id] ?? '0', currency) || 0;
             const percent = limit > 0 ? Math.round((spent / limit) * 100) : 0;
 
             return (
@@ -176,7 +181,7 @@ export function BudgetsView() {
                   </span>
                   <span className="text-xs text-ink-muted">
                     {tx(t.budgets.spent, {
-                      amount: formatVnd(spent, { compact: true, locale }),
+                      amount: money(spent, { compact: true }),
                     })}
                   </span>
                 </div>
@@ -185,21 +190,17 @@ export function BudgetsView() {
                     {t.budgets.limit}
                   </span>
                   <input
-                    inputMode="numeric"
-                    value={
-                      limits[c.id]
-                        ? formatVnd(parseAmountInput(limits[c.id])).replace('₫', '').trim()
-                        : ''
-                    }
+                    inputMode={amountInputMode(currency)}
+                    value={limits[c.id]}
                     onChange={(e) =>
                       setLimits((prev) => ({
                         ...prev,
-                        [c.id]: String(parseAmountInput(e.target.value) || ''),
+                        [c.id]: readAmountInput(e.target.value, currency).text,
                       }))
                     }
                     className="num w-full bg-transparent text-right font-semibold outline-none"
                   />
-                  <span className="text-ink-muted">{t.common.currencyUnit}</span>
+                  <span className="text-ink-muted">{currencySymbol}</span>
                 </label>
                 <ProgressBar percent={percent} color={categoryTone(c)} />
               </div>

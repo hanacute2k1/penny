@@ -12,7 +12,6 @@ export type Dictionary = {
     hide: string;
     optional: string;
     searchNotes: string;
-    currencyUnit: string;
     confirm: string;
     cancel: string;
     delete: string;
@@ -133,6 +132,7 @@ export type Dictionary = {
     plans: string;
     plansCount: string;
     currency: string;
+    currencyHint: string;
     language: string;
     theme: string;
     themeLight: string;
@@ -420,6 +420,32 @@ export type Dictionary = {
     arriveAt: string;
     arriveAtDay: string;
     routeScheduled: string;
+    teamTitle: string;
+    teamBody: string;
+    teamStart: string;
+    teamInviteLink: string;
+    teamReset: string;
+    teamResetHint: string;
+    teamStop: string;
+    teamStopHint: string;
+    teamPeople: string;
+    teamOwner: string;
+    teamYou: string;
+    teamGuest: string;
+    teamRemove: string;
+    teamRemoveConfirm: string;
+    teamLeave: string;
+    teamLeaveConfirm: string;
+    teamPeopleError: string;
+    teamMemberHint: string;
+    teamBadge: string;
+    teamJoined: string;
+    viewOnlyTitle: string;
+    joinTitle: string;
+    joinNotFound: string;
+    joinFailed: string;
+    joinRetry: string;
+    teamSyncHint: string;
     jumpToDay: string;
     happening: string;
     templates: Record<SpendPlanTemplateKey, string>;
@@ -533,7 +559,6 @@ export const en: Dictionary = {
     hide: 'Hide',
     optional: 'Optional',
     searchNotes: 'Search notes…',
-    currencyUnit: 'đ',
     confirm: 'Confirm',
     cancel: 'Cancel',
     delete: 'Delete',
@@ -654,6 +679,7 @@ export const en: Dictionary = {
     plans: 'Upcoming costs',
     plansCount: '{count} coming up',
     currency: 'Currency',
+    currencyHint: "Changes the unit only. Amounts you've entered aren't converted.",
     language: 'Language',
     theme: 'Theme',
     themeLight: 'Light',
@@ -960,6 +986,35 @@ export const en: Dictionary = {
     arriveAt: 'arrives {time}',
     arriveAtDay: 'arrives {time}, {day}',
     routeScheduled: '{km} · {time} by schedule',
+    teamTitle: 'Plan together',
+    teamBody:
+      'Invite friends to add stops, costs and packing items. Anyone with the invite link can edit this plan.',
+    teamStart: 'Create invite link',
+    teamInviteLink: 'Invite link (can edit)',
+    teamReset: 'New invite link',
+    teamResetHint: 'The old link stops working. People already in stay.',
+    teamStop: 'Turn off invite link',
+    teamStopHint: 'Nobody new can join. People already in stay.',
+    teamPeople: 'People',
+    teamOwner: 'Owner',
+    teamYou: 'You',
+    teamGuest: 'Guest',
+    teamRemove: 'Remove',
+    teamRemoveConfirm:
+      "Remove {name} from this plan? They won't be able to see or edit it anymore.",
+    teamLeave: 'Leave plan',
+    teamLeaveConfirm:
+      "Leave this plan? You won't be able to see or edit it unless you're invited again.",
+    teamPeopleError: "Couldn't load the people in this plan.",
+    teamMemberHint: 'Only the owner can close out costs, change links or delete the plan.',
+    teamBadge: 'Planning together',
+    teamJoined: 'Invited',
+    viewOnlyTitle: 'View-only link',
+    joinTitle: 'Joining the plan…',
+    joinNotFound: 'This invite link no longer works. Ask for a new one.',
+    joinFailed: "Couldn't join the plan.",
+    joinRetry: 'Try again',
+    teamSyncHint: "Everyone's changes show up after a few seconds.",
     jumpToDay: 'Pick a day',
     happening: 'Happening now',
     templates: {

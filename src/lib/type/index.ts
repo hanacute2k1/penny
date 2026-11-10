@@ -1,3 +1,4 @@
+import type { CurrencyCode } from '@/lib/currency';
 export type CategoryType = 'expense' | 'income';
 export type TransactionType = 'expense' | 'income';
 
@@ -267,6 +268,17 @@ export type SpendPlan = {
   checklist: PlanChecklistItem[];
   /** Set while a read-only link is shared (/share/<shareId>). */
   shareId?: string;
+  /** Currency of the amounts, saved when the plan is shared so the link shows them right. */
+  currency?: CurrencyCode;
+  /**
+   * Planned together with friends: edits are merged on the server instead of
+   * overwriting the whole plan. Stays on once turned on.
+   */
+  collaborative?: boolean;
+  /** Set while the invite link (/join/<inviteId>) works; anyone opening it can edit. */
+  inviteId?: string;
+  /** Only in the app, never saved: the account that owns a plan someone shared with me. */
+  ownerId?: string;
   /** "done" once the user has closed it out after the occasion. */
   status: 'planning' | 'done';
   /** Number of transactions last posted from this plan (0 = never posted). */

@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useMonth } from '@/hooks/useMonth';
 import { useStore } from '@/contexts/StoreContext';
 import { useI18n } from '@/contexts/I18nContext';
-import { formatVnd } from '@/lib/helper/format';
 import {
   activeMeters,
   entriesForMeterMonth,
@@ -21,7 +20,7 @@ import { ItemIcon } from '@/components/Base/ItemIcon';
 export function TransportHubView() {
   const { yearMonth } = useMonth();
   const { ready, transportMeters, transportEntries, addTransportMeter } = useStore();
-  const { t, tx, locale } = useI18n();
+  const { t, tx, money } = useI18n();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<string>('motorbike');
@@ -140,7 +139,7 @@ export function TransportHubView() {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="num text-base font-semibold text-ink">
-                    {formatVnd(total, { compact: true, locale })}
+                    {money(total, { compact: true })}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-accent">{t.transport.open}</p>
                 </div>

@@ -29,7 +29,7 @@ export function TransportMeterView() {
   const { yearMonth } = useMonth();
   const { ready, transportMeters, transportEntries, setTransportDayLegs, archiveTransportMeter } =
     useStore();
-  const { t, tx } = useI18n();
+  const { t, tx, money } = useI18n();
   const [view, setView] = useState<ViewMode>('calendar');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [today] = useState(todayIso);
@@ -117,7 +117,7 @@ export function TransportMeterView() {
             className="btn-primary tap mt-5 w-full rounded-2xl px-5 py-3.5 text-sm font-semibold sm:w-auto"
           >
             {t.transport.logToday}
-            {amounts.has(today) ? ` · ${amounts.get(today)?.toLocaleString('vi-VN')}đ` : ''}
+            {amounts.has(today) ? ` · ${money(amounts.get(today) ?? 0)}` : ''}
           </button>
         ) : null}
       </section>

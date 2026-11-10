@@ -1,3 +1,4 @@
+import { CURRENCY_CODES, type CurrencyCode } from '@/lib/currency';
 import { z } from 'zod';
 
 /**
@@ -90,7 +91,7 @@ const transportEntry = z.object({
   createdAt: timestamp,
 });
 
-const spendPlan = z.object({
+export const spendPlanSchema = z.object({
   id,
   title: text(120).min(1),
   icon: text(16),
@@ -150,6 +151,12 @@ const spendPlan = z.object({
     .string()
     .regex(/^[a-f0-9]{32}$/)
     .optional(),
+  currency: z.enum(CURRENCY_CODES as [CurrencyCode, ...CurrencyCode[]]).optional(),
+  collaborative: z.boolean().optional(),
+  inviteId: z
+    .string()
+    .regex(/^[a-f0-9]{32}$/)
+    .optional(),
   status: z.enum(['planning', 'done']),
   postedCount: z.number().int().nonnegative(),
   createdAt: timestamp,
@@ -163,7 +170,7 @@ export const COLLECTIONS = {
   monthPlans: { table: 'month_plans', key: 'id', schema: monthPlan },
   transportMeters: { table: 'transport_meters', key: 'id', schema: transportMeter },
   transportEntries: { table: 'transport_entries', key: 'id', schema: transportEntry },
-  spendPlans: { table: 'spend_plans', key: 'id', schema: spendPlan },
+  spendPlans: { table: 'spend_plans', key: 'id', schema: spendPlanSchema },
 } as const;
 
 export type CollectionName = keyof typeof COLLECTIONS;

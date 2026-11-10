@@ -1,3 +1,4 @@
+import type { CurrencyCode } from '@/lib/currency';
 /**
  * Every change the app can make to its data, as pure functions: (state, args) → next state.
  * StoreContext runs them inside setState; nothing here touches React, the network or storage.
@@ -615,11 +616,58 @@ export function newShareId(): string {
 }
 
 /** Turns the public link on (with a new id) or off (undefined). */
-export function setPlanShare(s: AppState, planId: string, shareId: string | undefined): AppState {
-  return patchPlan(s, planId, (p) => ({ ...p, shareId }));
+/** Turns the link on (with the currency its amounts are in) or off. */
+export function setPlanShare(
+  s: AppState,
+  planId: string,
+  shareId: string | undefined,
+  currency?: CurrencyCode,
+): AppState {
+  return patchPlan(s, planId, (p) => ({ ...p, shareId, currency: currency ?? p.currency }));
 }
 
 /** Removes the plan only; transactions already posted from it stay. */
 export function deleteSpendPlan(s: AppState, id: string): AppState {
   return { ...s, spendPlans: s.spendPlans.filter((p) => p.id !== id) };
+}
+
+/* ───────────── Planning together ───────────── */
+
+/** Starts planning with friends: turns on merging and makes an invite link. */
+export function startTeamPlan(
+  s: AppState,
+  planId: string,
+  inviteId: string,
+  currency: CurrencyCode,
+): AppState {
+  return patchPlan(s, planId, (p) => ({
+    ...p,
+    collaborative: true,
+    inviteId,
+    currency: p.currency ?? currency,
+  }));
+}
+
+/** New invite link (old one stops working), or none: friends already in stay. */
+export function setTeamInvite(s: AppState, planId: string, inviteId: string | undefined): AppState {
+  return patchPlan(s, planId, (p) => ({ ...p, inviteId }));
+}
+
+/** Puts a plan as the server has it (someone else's edits), or adds one just joined. */
+export function putPlan(s: AppState, plan: SpendPlan): AppState {
+  const exists = s.spendPlans.some((p) => p.id === plan.id && p.ownerId === plan.ownerId);
+  return {
+    ...s,
+    spendPlans: exists
+      ? s.spendPlans.map((p) => (p.id === plan.id && p.ownerId === plan.ownerId ? plan : p))
+      : [...s.spendPlans, plan],
+  };
+}
+
+/** Drops a plan someone shared with me (I left, was removed, or it was deleted). */
+export function dropJoinedPlan(s: AppState, planId: string, ownerId: string): AppState {
+  return {
+    ...s,
+    spendPlans: s.spendPlans.filter((p) => !(p.id === planId && p.ownerId === ownerId)),
+  };
 }

@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   textSize: 'valoir-text-size',
   glass: 'valoir-glass',
   locale: 'valoir-locale',
+  currency: 'valoir-currency',
   hiddenModules: 'valoir-hidden-modules',
   entryMode: 'valoir-entry-mode',
   /** Data kept on the device by the app before accounts existed. */

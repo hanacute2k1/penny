@@ -15,7 +15,7 @@ export async function GET(_request: Request, ctx: RouteContext<'/api/v1/[collect
   const auth = await requireUser();
   if ('response' in auth) return auth.response;
   try {
-    return NextResponse.json(await loadCollection(auth.supabase, name));
+    return NextResponse.json(await loadCollection(auth.supabase, auth.userId, name));
   } catch (error) {
     return jsonError(500, 'Could not load data', String(error));
   }

@@ -9,7 +9,7 @@ import { Icon } from '@/components/Base/Icon';
 import { ItemIcon } from '@/components/Base/ItemIcon';
 import { LoadingText } from '@/components/Base/LoadingText';
 import { Segmented } from '@/components/Base/Segmented';
-import { useI18n } from '@/contexts/I18nContext';
+import { CurrencyScope, useI18n } from '@/contexts/I18nContext';
 import { useStore } from '@/contexts/StoreContext';
 import { todayIso } from '@/lib/helper/date';
 import {
@@ -80,6 +80,9 @@ export function SpendPlanDetailView() {
   }
 
   const days = planDays(plan);
+  /** Planned with friends: mine with people invited, or a friend's I joined. */
+  const isTeam = Boolean(plan.collaborative || plan.ownerId);
+  const isOwner = !plan.ownerId;
   const phase = spendPlanPhase(plan, todayIso());
   const until = daysUntilPlan(plan);
   const lastDay = days[days.length - 1];
@@ -93,7 +96,8 @@ export function SpendPlanDetailView() {
       : null;
 
   return (
-    <>
+    // A friend's plan is in its owner's currency.
+    <CurrencyScope currency={isTeam ? plan.currency : undefined}>
       <Link href="/plan" className="mb-3 inline-block text-sm font-semibold text-ink-soft">
         {t.spendPlans.back}
       </Link>
@@ -119,9 +123,23 @@ export function SpendPlanDetailView() {
                 {tx(t.spendPlans.peopleCount, { count: plan.people })}
               </span>
             </p>
-            {status ? (
-              <span className="mt-1.5 inline-block rounded-full bg-chart-4/50 px-2.5 py-0.5 text-sm font-semibold">
-                {status}
+            {status || isTeam ? (
+              <span className="mt-1.5 flex flex-wrap gap-1.5">
+                {status ? (
+                  <span className="rounded-full bg-chart-4/50 px-2.5 py-0.5 text-sm font-semibold">
+                    {status}
+                  </span>
+                ) : null}
+                {isTeam ? (
+                  <button
+                    type="button"
+                    onClick={() => setShareOpen(true)}
+                    className="tap inline-flex items-center gap-1 rounded-full bg-chart-1/50 px-2.5 py-0.5 text-sm font-semibold"
+                  >
+                    <Users size={14} aria-hidden="true" />
+                    {plan.ownerId ? t.spendPlans.teamJoined : t.spendPlans.teamBadge}
+                  </button>
+                ) : null}
               </span>
             ) : null}
             {plan.note ? <p className="mt-1 text-sm text-ink-muted">{plan.note}</p> : null}
@@ -133,7 +151,7 @@ export function SpendPlanDetailView() {
               aria-label={t.spendPlans.share}
               title={t.spendPlans.share}
               className={`tap grid h-11 w-11 place-items-center rounded-full border ${
-                plan.shareId
+                plan.shareId || plan.collaborative || plan.ownerId
                   ? 'border-accent/40 bg-accent-soft text-accent-deep'
                   : 'border-line bg-surface text-ink-soft hover:text-ink'
               }`}
@@ -182,7 +200,7 @@ export function SpendPlanDetailView() {
             onRoute={setRouteDay}
           />
         ) : tab === 'costs' ? (
-          <Costs plan={plan} />
+          <Costs plan={plan} canSettle={isOwner} />
         ) : (
           <Checklist
             items={plan.checklist}
@@ -192,14 +210,16 @@ export function SpendPlanDetailView() {
           />
         )}
 
-        <button
-          type="button"
-          onClick={() => setConfirmDelete(true)}
-          className="tap flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl font-semibold text-coral hover:bg-coral-soft"
-        >
-          <Icon name="trash" size={18} />
-          {t.spendPlans.delete}
-        </button>
+        {isOwner ? (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="tap flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl font-semibold text-coral hover:bg-coral-soft"
+          >
+            <Icon name="trash" size={18} />
+            {t.spendPlans.delete}
+          </button>
+        ) : null}
       </div>
 
       <ActivitySheet
@@ -254,6 +274,6 @@ export function SpendPlanDetailView() {
           router.push('/plan');
         }}
       />
-    </>
+    </CurrencyScope>
   );
 }

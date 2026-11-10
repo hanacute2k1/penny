@@ -6,7 +6,12 @@ import Link from 'next/link';
 import { useStore } from '@/contexts/StoreContext';
 import { useI18n } from '@/contexts/I18nContext';
 import { currentYearMonth } from '@/lib/helper/date';
-import { formatVnd, parseAmountInput } from '@/lib/helper/format';
+import {
+  formatAmountText,
+  parseAmountInput,
+  readAmountInput,
+  amountInputMode,
+} from '@/lib/helper/format';
 import { Amount } from '@/components/Base/Amount';
 import { categoryTint } from '@/lib/helper/categoryTone';
 import { ConfirmDialog } from '@/components/Base/ConfirmDialog';
@@ -38,7 +43,7 @@ export function FixedCostsView() {
     deleteRecurring,
     toggleRecurring,
   } = useStore();
-  const { t, tx, locale, categoryName } = useI18n();
+  const { t, tx, categoryName, money, currency, currencySymbol } = useI18n();
   const [month] = useState(currentYearMonth);
   const [form, setForm] = useState(() => emptyForm(currentYearMonth()));
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -75,12 +80,12 @@ export function FixedCostsView() {
       endMonth: rule.endMonth ?? null,
       isActive: rule.isActive,
     });
-    setAmountRaw(String(rule.amount));
+    setAmountRaw(formatAmountText(rule.amount, currency));
     setShowForm(true);
   }
 
   function submit() {
-    const amount = parseAmountInput(amountRaw) || form.amount;
+    const amount = parseAmountInput(amountRaw, currency) || form.amount;
     if (!form.name.trim() || amount <= 0 || !form.categoryId) return;
     const payload: RecurringInput = {
       ...form,
@@ -141,15 +146,13 @@ export function FixedCostsView() {
             <span className="field-label mb-1.5 block">{t.fixed.amount}</span>
             <div className="flex items-center gap-2 rounded-xl bg-paper px-3 py-2.5">
               <input
-                inputMode="numeric"
-                value={
-                  amountRaw ? formatVnd(parseAmountInput(amountRaw)).replace('₫', '').trim() : ''
-                }
-                onChange={(e) => setAmountRaw(String(parseAmountInput(e.target.value) || ''))}
+                inputMode={amountInputMode(currency)}
+                value={amountRaw}
+                onChange={(e) => setAmountRaw(readAmountInput(e.target.value, currency).text)}
                 className="num w-full bg-transparent outline-none"
                 placeholder="0"
               />
-              <span className="text-ink-muted">{t.common.currencyUnit}</span>
+              <span className="text-ink-muted">{currencySymbol}</span>
             </div>
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -273,7 +276,7 @@ export function FixedCostsView() {
                       }`}
                     >
                       {rule.type === 'expense' ? '-' : '+'}
-                      {formatVnd(rule.amount, { locale })}
+                      {money(rule.amount)}
                     </p>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import type { CurrencyCode } from '@/lib/currency';
 import { usePathname } from 'next/navigation';
 import {
   createContext,
@@ -12,6 +13,14 @@ import {
   type ReactNode,
 } from 'react';
 import { fetchRemoteState, pushChanges, UnauthorizedError } from '@/apis/data';
+import {
+  fetchTeamPlans,
+  joinTeamPlan,
+  removeTeamPerson,
+  saveTeamPlan,
+  TeamPlanRequestError,
+} from '@/apis/teamPlans';
+import { mergePlan, same } from '@/lib/helper/planMerge';
 import { STORAGE_KEYS, SYNC } from '@/lib/constants';
 import { buildMonthView } from '@/lib/helper/aggregations';
 import { previousYearMonth } from '@/lib/helper/date';
@@ -31,6 +40,7 @@ import type {
   MonthView,
   RecurringInput,
   PlanActivityInput,
+  SpendPlan,
   SpendPlanInput,
   SpendPlanItem,
   TransactionInput,
@@ -55,7 +65,8 @@ type StoreValue = AppState & {
   getBudget: (yearMonth: string) => MonthBudget | undefined;
   /** Copies last month's limits; returns false (and changes nothing) if there are none. */
   copyBudgetFromPrevious: (yearMonth: string) => boolean;
-} & StoreActions;
+} & StoreActions &
+  TeamActions;
 
 type StoreActions = {
   addTransaction: (input: TransactionInput) => void;
@@ -101,11 +112,36 @@ type StoreActions = {
   toggleChecklistItem: (planId: string, itemId: string) => void;
   removeChecklistItem: (planId: string, itemId: string) => void;
   /** Turns the public read-only link on and returns its id. */
-  sharePlan: (planId: string) => string;
+  /** Turns on the read-only link; amounts there show in `currency`. */
+  sharePlan: (planId: string, currency: CurrencyCode) => string;
   unsharePlan: (planId: string) => void;
 };
 
+/** Planning together: these talk to the server, so they are async. */
+type TeamActions = {
+  /** Starts planning with friends; returns the invite link id. */
+  startTeamPlan: (planId: string, currency: CurrencyCode) => string;
+  /** A new invite link; the old one stops working. People already in stay. */
+  resetTeamInvite: (planId: string) => void;
+  /** No invite link; people already in stay. */
+  stopTeamInvite: (planId: string) => void;
+  /** Joins with an invite link; resolves to the plan id (null if the link is dead). */
+  joinTeamPlan: (inviteId: string) => Promise<string | null>;
+  /** Leaves a plan a friend shared; it disappears from my list. */
+  leaveTeamPlan: (planId: string, ownerId: string) => Promise<void>;
+  /** Pulls friends' latest edits now (also happens every few seconds). */
+  refreshTeamPlans: () => Promise<void>;
+};
+
 const StoreContext = createContext<StoreValue | null>(null);
+
+/** How often friends' edits to shared plans are fetched while the app is visible. */
+const TEAM_PULL_MS = 8_000;
+
+/** A plan planned together: mine with friends invited, or a friend's I joined. */
+const isTeamPlan = (plan: SpendPlan) => Boolean(plan.ownerId || plan.collaborative);
+/** Plan ids are unique per account, so a friend's plan is told apart by its owner. */
+const planKey = (plan: Pick<SpendPlan, 'id' | 'ownerId'>) => `${plan.ownerId ?? ''}:${plan.id}`;
 
 /** Data an older version of the app kept in localStorage, before accounts existed. */
 function readLegacyState(): AppState | null {
@@ -158,6 +194,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       .then((remote) => {
         if (cancelled) return;
         confirmed.current = remote;
+        teamBase.current = new Map(
+          remote.spendPlans.filter(isTeamPlan).map((plan) => [planKey(plan), plan]),
+        );
         let next = remote;
         if (isEmptyState(remote)) {
           next = createStarterState();
@@ -227,6 +266,150 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     document.addEventListener('visibilitychange', onHide);
     return () => document.removeEventListener('visibilitychange', onHide);
   }, [ready, flush]);
+
+  /* ───────────── Shared plans (planned together) ───────────── */
+
+  /**
+   * Each shared plan as the server last returned it. My edits are what differs
+   * from it; they're sent with it as `base` so the server can merge them into
+   * friends' edits.
+   */
+  const teamBase = useRef(new Map<string, SpendPlan>());
+  const teamSaving = useRef(new Set<string>());
+  const teamRetry = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Lets a failed save retry itself later without referencing itself. */
+  const flushTeamAgain = useRef<() => void>(() => {});
+
+  const flushTeam = useCallback(() => {
+    for (const plan of latest.current.spendPlans) {
+      if (!isTeamPlan(plan)) continue;
+      const key = planKey(plan);
+      if (teamSaving.current.has(key)) continue;
+      const known = teamBase.current.get(key);
+      // Just turned into a shared plan: start from what the normal sync saved.
+      const base =
+        known ?? confirmed.current.spendPlans.find((p) => p.id === plan.id && !p.ownerId) ?? plan;
+      if (known && same(known, plan)) continue;
+
+      teamSaving.current.add(key);
+      setSyncStatus('saving');
+      saveTeamPlan(base, plan)
+        .then((saved) => {
+          teamBase.current.set(key, saved);
+          // Keep edits made while this was saving, on top of everyone's changes.
+          setState((s) => {
+            const now = s.spendPlans.find((p) => planKey(p) === key);
+            if (!now) return s;
+            return actions.putPlan(s, same(now, plan) ? saved : mergePlan(plan, now, saved));
+          });
+          setSyncStatus('idle');
+        })
+        .catch((error) => {
+          if (error instanceof UnauthorizedError) return goToLogin();
+          if (error instanceof TeamPlanRequestError && error.status === 404 && plan.ownerId) {
+            // Removed from the plan, or it was deleted.
+            teamBase.current.delete(key);
+            setState((s) => actions.dropJoinedPlan(s, plan.id, plan.ownerId as string));
+            return;
+          }
+          setSyncStatus('error');
+          if (teamRetry.current) clearTimeout(teamRetry.current);
+          teamRetry.current = setTimeout(() => flushTeamAgain.current(), SYNC.firstRetryMs * 4);
+        })
+        .finally(() => {
+          teamSaving.current.delete(key);
+        });
+    }
+  }, []);
+
+  /** Brings in friends' edits, merged with any of mine not saved yet. */
+  const pullTeam = useCallback(async () => {
+    const remote = await fetchTeamPlans();
+    // A snapshot: the state updater below may run twice and must not see its own changes.
+    const bases = new Map(teamBase.current);
+    const busy = new Set(teamSaving.current);
+    setState((s) => {
+      let next = s;
+      const remoteKeys = new Set(remote.map(planKey));
+      for (const plan of remote) {
+        const key = planKey(plan);
+        if (busy.has(key)) continue; // The save's answer brings it in.
+        const now = s.spendPlans.find((p) => planKey(p) === key);
+        const base = bases.get(key);
+        if (!now || !base || same(now, base)) next = actions.putPlan(next, plan);
+        else next = actions.putPlan(next, mergePlan(base, now, plan));
+      }
+      for (const plan of s.spendPlans) {
+        if (plan.ownerId && !remoteKeys.has(planKey(plan)) && !busy.has(planKey(plan))) {
+          next = actions.dropJoinedPlan(next, plan.id, plan.ownerId);
+        }
+      }
+      return next;
+    });
+    for (const plan of remote) {
+      if (!busy.has(planKey(plan))) teamBase.current.set(planKey(plan), plan);
+    }
+  }, []);
+
+  useEffect(() => {
+    flushTeamAgain.current = flushTeam;
+  }, [flushTeam]);
+
+  // Edits to shared plans go out on the same short delay as everything else.
+  useEffect(() => {
+    if (!ready) return;
+    const id = setTimeout(flushTeam, SYNC.saveDelayMs);
+    return () => clearTimeout(id);
+  }, [state, ready, flushTeam]);
+
+  const hasTeamPlans = state.spendPlans.some(isTeamPlan);
+
+  // Friends' edits show up within a few seconds while the app is open.
+  useEffect(() => {
+    if (!ready || !hasTeamPlans) return;
+    const pull = () => {
+      if (document.visibilityState === 'visible') pullTeam().catch(() => {});
+    };
+    const id = setInterval(pull, TEAM_PULL_MS);
+    document.addEventListener('visibilitychange', pull);
+    window.addEventListener('focus', pull);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', pull);
+      window.removeEventListener('focus', pull);
+    };
+  }, [ready, hasTeamPlans, pullTeam]);
+
+  const teamActions = useMemo<TeamActions>(
+    () => ({
+      startTeamPlan: (planId, currency) => {
+        const inviteId = actions.newShareId();
+        setState((s) => actions.startTeamPlan(s, planId, inviteId, currency));
+        return inviteId;
+      },
+      resetTeamInvite: (planId) =>
+        setState((s) => actions.setTeamInvite(s, planId, actions.newShareId())),
+      stopTeamInvite: (planId) => setState((s) => actions.setTeamInvite(s, planId, undefined)),
+      joinTeamPlan: async (inviteId) => {
+        try {
+          const { planId } = await joinTeamPlan(inviteId);
+          await pullTeam();
+          return planId;
+        } catch (error) {
+          if (error instanceof UnauthorizedError) goToLogin();
+          if (error instanceof TeamPlanRequestError && error.status === 404) return null;
+          throw error;
+        }
+      },
+      leaveTeamPlan: async (planId, ownerId) => {
+        await removeTeamPerson(ownerId, planId);
+        teamBase.current.delete(planKey({ id: planId, ownerId }));
+        setState((s) => actions.dropJoinedPlan(s, planId, ownerId));
+      },
+      refreshTeamPlans: pullTeam,
+    }),
+    [pullTeam],
+  );
 
   /* ───────────── Account-level actions ───────────── */
 
@@ -315,9 +498,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       toggleChecklistItem: run(actions.toggleChecklistItem),
       removeChecklistItem: run(actions.removeChecklistItem),
-      sharePlan: (planId) => {
+      sharePlan: (planId, currency) => {
         const shareId = actions.newShareId();
-        setState((s) => actions.setPlanShare(s, planId, shareId));
+        setState((s) => actions.setPlanShare(s, planId, shareId, currency));
         return shareId;
       },
       unsharePlan: (planId) => setState((s) => actions.setPlanShare(s, planId, undefined)),
@@ -354,6 +537,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ...state,
       ...dataActions,
+      ...teamActions,
       ready,
       loadError,
       reload,
@@ -368,6 +552,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [
       state,
       dataActions,
+      teamActions,
       ready,
       loadError,
       reload,
