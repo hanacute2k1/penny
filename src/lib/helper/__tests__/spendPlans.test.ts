@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { PlanActivity, SpendPlan } from '@/lib/type';
+import type { PlanActivity, SpendPlan, SpendPlanItem } from '@/lib/type';
 import {
-  groupCostItems,
+  costName,
+  costsByDay,
   itineraryByDay,
   normalizeSpendPlan,
   planDays,
-  sortCostItems,
   summarizeSpendPlan,
 } from '../spendPlans';
 
@@ -125,39 +125,56 @@ it('fills new fields on plans saved before them', () => {
   expect(plan.items[0].deposit).toBe(0);
 });
 
-describe('sortCostItems / groupCostItems', () => {
-  const cost = (id: string, date?: string, time?: string) => ({ id, date, time });
+describe('costsByDay', () => {
+  const item = (id: string, extra: Partial<SpendPlanItem> = {}): SpendPlanItem => ({
+    id,
+    name: id,
+    categoryId: 'c-other',
+    estimate: 0,
+    deposit: 0,
+    actual: null,
+    isExtra: false,
+    ...extra,
+  });
+  const stay: PlanActivity = {
+    ...activity('hotel', '2026-12-01', '14:00'),
+    kind: 'stay',
+    endDate: '2026-12-03',
+  };
+  const plan = {
+    startDate: '2026-12-01',
+    endDate: '2026-12-03',
+    activities: [activity('dinner', '2026-12-01', '19:00'), stay, activity('museum', '2026-12-02')],
+    items: [
+      item('p-dinner', { activityId: 'dinner', date: '2026-12-01', estimate: 300 }),
+      item('taxi', { date: '2026-12-02', isExtra: true }),
+      item('visa'),
+      item('gone', { activityId: 'deleted-stop', date: '2026-12-09' }),
+    ],
+  };
 
-  it('orders by day, then time, untimed after timed, no day last', () => {
-    const items = [
-      cost('noDay'),
-      cost('day2'),
-      cost('day1-evening', '2026-12-01', '19:00'),
-      cost('day1-untimed', '2026-12-01'),
-      cost('day1-morning', '2026-12-01', '08:00'),
-      cost('day2-noon', '2026-12-02', '12:00'),
-    ];
-    items[1].date = '2026-12-02';
-    expect(sortCostItems(items).map((i) => i.id)).toEqual([
-      'day1-morning',
-      'day1-evening',
-      'day1-untimed',
-      'day2-noon',
-      'day2',
-      'noDay',
+  it('lists each day with its stops in itinerary order and their prices', () => {
+    const { days } = costsByDay(plan);
+    expect(days.map((d) => d.stops.map((s) => [s.activity.id, s.item?.id]))).toEqual([
+      [
+        ['hotel', undefined],
+        ['dinner', 'p-dinner'],
+      ],
+      [['museum', undefined]],
+      // The hotel's check-out isn't priced again.
+      [],
     ]);
   });
 
-  it('keeps the order costs were added when day and time are the same', () => {
-    const items = [cost('a', '2026-12-01'), cost('b', '2026-12-01')];
-    expect(sortCostItems(items).map((i) => i.id)).toEqual(['a', 'b']);
+  it("puts a day's own costs on it and the rest under the whole trip", () => {
+    const { days, general } = costsByDay(plan);
+    expect(days[1].extras.map((i) => i.id)).toEqual(['taxi']);
+    expect(general.map((i) => i.id)).toEqual(['visa', 'gone']);
   });
 
-  it('groups by day', () => {
-    const groups = groupCostItems([cost('x'), cost('a', '2026-12-01'), cost('b', '2026-12-01')]);
-    expect(groups.map((g) => [g.date, g.items.length])).toEqual([
-      ['2026-12-01', 2],
-      [null, 1],
-    ]);
+  it("names a stop's price after the stop as it is now", () => {
+    const renamed = { activities: [{ ...activity('dinner', '2026-12-01'), title: 'BBQ' }] };
+    expect(costName(renamed, item('x', { activityId: 'dinner' }))).toBe('BBQ');
+    expect(costName(renamed, item('visa'))).toBe('visa');
   });
 });

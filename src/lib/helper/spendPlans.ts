@@ -73,36 +73,50 @@ export function summarizeSpendPlan(
   };
 }
 
-/**
- * Costs in the order they are paid: by day, then time (untimed after timed that
- * day), costs with no day last; otherwise in the order they were added.
- */
-export function sortCostItems<T extends Pick<SpendPlanItem, 'date' | 'time'>>(items: T[]): T[] {
-  return items
-    .map((item, index) => ({ item, index }))
-    .sort((a, b) => {
-      const dayA = a.item.date ?? '9999-99-99';
-      const dayB = b.item.date ?? '9999-99-99';
-      if (dayA !== dayB) return dayA.localeCompare(dayB);
-      const timeA = a.item.time ?? '99:99';
-      const timeB = b.item.time ?? '99:99';
-      return timeA.localeCompare(timeB) || a.index - b.index;
-    })
-    .map(({ item }) => item);
-}
+/** An itinerary stop on the Costs tab, with its price if one was entered. */
+export type CostStop = { activity: PlanActivity; item?: SpendPlanItem };
 
-/** Sorted costs split by day; `date` is null for the ones with no day. */
-export function groupCostItems<T extends Pick<SpendPlanItem, 'date' | 'time'>>(
-  items: T[],
-): Array<{ date: string | null; items: T[] }> {
-  const groups: Array<{ date: string | null; items: T[] }> = [];
-  for (const item of sortCostItems(items)) {
-    const date = item.date ?? null;
-    const last = groups[groups.length - 1];
-    if (last && last.date === date) last.items.push(item);
-    else groups.push({ date, items: [item] });
+export type CostDay = {
+  date: string;
+  /** The day's itinerary, in itinerary order; each stop once (on the day it starts). */
+  stops: CostStop[];
+  /** Costs of their own on this day (phát sinh, or anything not in the itinerary). */
+  extras: SpendPlanItem[];
+};
+
+/**
+ * The Costs tab: the itinerary day by day, each stop with its price, plus each
+ * day's own costs. `general` holds costs tied to no day of the trip (made
+ * before costs had days, or whose day / stop is gone).
+ */
+export function costsByDay(
+  plan: Pick<SpendPlan, 'startDate' | 'endDate' | 'activities' | 'items'>,
+): {
+  days: CostDay[];
+  general: SpendPlanItem[];
+} {
+  const { days } = itineraryByDay(plan);
+  const shown = new Set<string>();
+  const result = days.map((day) => {
+    const stops: CostStop[] = [];
+    for (const stop of day.stops) {
+      // The second half of an overnight stay / journey isn't priced again.
+      if (stop.role === 'checkOut' || stop.role === 'arrive') continue;
+      const item = plan.items.find((i) => i.activityId === stop.activity.id);
+      if (item) shown.add(item.id);
+      stops.push({ activity: stop.activity, item });
+    }
+    return { date: day.date, stops, extras: [] as SpendPlanItem[] };
+  });
+  const byDate = new Map(result.map((day) => [day.date, day]));
+  const general: SpendPlanItem[] = [];
+  for (const item of plan.items) {
+    if (shown.has(item.id)) continue;
+    const day = item.date ? byDate.get(item.date) : undefined;
+    if (day) day.extras.push(item);
+    else general.push(item);
   }
-  return groups;
+  return { days: result, general };
 }
 
 /** Fills fields added later (deposit, people, itinerary, checklist) on plans saved before them. */
@@ -266,6 +280,12 @@ export function spendPlanPhase(plan: SpendPlan, today: string): SpendPlanPhase {
 }
 
 /** Transactions for every item with a real cost, dated on the plan's last day. */
+/** A stop's price is named after the stop as it is now; other costs by their own name. */
+export function costName(plan: Pick<SpendPlan, 'activities'>, item: SpendPlanItem): string {
+  const stop = item.activityId ? plan.activities.find((a) => a.id === item.activityId) : undefined;
+  return stop?.title || item.name;
+}
+
 export function spendPlanTransactions(plan: SpendPlan): Transaction[] {
   const date = plan.endDate && plan.endDate > plan.startDate ? plan.endDate : plan.startDate;
   const createdAt = new Date().toISOString();
@@ -277,7 +297,7 @@ export function spendPlanTransactions(plan: SpendPlan): Transaction[] {
       amount: item.actual ?? 0,
       type: 'expense' as const,
       date: item.date ?? date,
-      note: [plan.title, item.name, item.place].filter(Boolean).join(' · '),
+      note: [plan.title, costName(plan, item), item.place].filter(Boolean).join(' · '),
       spendPlanId: plan.id,
       createdAt,
     }));

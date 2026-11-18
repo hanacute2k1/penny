@@ -180,17 +180,18 @@ export type Dictionary = {
     futureMonthHint: string;
   };
   spendPlans: {
-    costList: string;
+    costGeneral: string;
+    costGeneralHint: string;
+    costAddGeneral: string;
+    costDayEmpty: string;
+    costAddExtra: string;
+    costClear: string;
     addCost: string;
     editCost: string;
     costName: string;
     costNamePlaceholder: string;
     costPlace: string;
     costPlacePlaceholder: string;
-    costDate: string;
-    costTime: string;
-    costNoDate: string;
-    costEmpty: string;
     costDelete: string;
     costPaidAhead: string;
     title: string;
@@ -685,17 +686,18 @@ export const en: Dictionary = {
     futureMonthHint: 'A future month — nothing has been charged yet',
   },
   spendPlans: {
-    costList: 'Costs',
+    costGeneral: 'Whole trip',
+    costGeneralHint: 'Costs not tied to one day: visa, insurance, SIM…',
+    costAddGeneral: 'Add a cost for the whole trip',
+    costDayEmpty: 'Nothing planned this day yet.',
+    costAddExtra: 'Add an extra cost',
+    costClear: 'Clear price',
     addCost: 'Add a cost',
     editCost: 'Edit cost',
     costName: 'What for',
     costNamePlaceholder: 'e.g. Flights, seafood dinner',
     costPlace: 'Where',
     costPlacePlaceholder: 'e.g. Night market',
-    costDate: 'Day',
-    costTime: 'Time',
-    costNoDate: 'No day set',
-    costEmpty: 'No costs yet. Add tickets, rooms, meals… with when and where you pay.',
     costDelete: 'Delete cost',
     costPaidAhead: '{amount} paid',
     title: 'Plans',

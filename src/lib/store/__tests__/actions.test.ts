@@ -272,7 +272,6 @@ describe('trip costs', () => {
     name: ' Ăn tối ',
     place: ' Chợ đêm ',
     date: '2026-12-02',
-    time: '19:30',
     estimate: 300_000,
     deposit: 0,
     actual: null,
@@ -286,12 +285,7 @@ describe('trip costs', () => {
       actions.newSpendPlanItem(input, { isExtra: false }),
     );
     const item = next.spendPlans[0].items[0];
-    expect(item).toMatchObject({
-      name: 'Ăn tối',
-      place: 'Chợ đêm',
-      date: '2026-12-02',
-      time: '19:30',
-    });
+    expect(item).toMatchObject({ name: 'Ăn tối', place: 'Chợ đêm', date: '2026-12-02' });
     expect(next.categories.some((c) => c.id === item.categoryId)).toBe(true);
   });
 
@@ -313,6 +307,18 @@ describe('trip costs', () => {
     expect(next.spendPlans[0].items[0].isExtra).toBe(false);
     next = actions.removeSpendPlanItem(next, id, extra.id);
     expect(next.spendPlans[0].items).toHaveLength(0);
+  });
+
+  it("a stop's price is never an extra", () => {
+    const { s, id } = withPlan();
+    const priced = actions.newSpendPlanItem(
+      { ...input, estimate: 0, actual: 80_000, activityId: 'stop-1' },
+      { isExtra: true },
+    );
+    expect(priced.isExtra).toBe(false);
+    expect(actions.addSpendPlanItem(s, id, priced).spendPlans[0].items[0].activityId).toBe(
+      'stop-1',
+    );
   });
 
   it('posts each cost on the day it was paid, with where', () => {

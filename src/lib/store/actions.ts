@@ -460,15 +460,16 @@ function cleanItemInput(input: SpendPlanItemInput) {
     deposit: Math.max(0, input.deposit),
     actual: input.actual === null ? null : Math.max(0, input.actual),
     date: input.date || undefined,
-    time: input.time || undefined,
     place: input.place?.trim() || undefined,
+    activityId: input.activityId || undefined,
   };
 }
 
 /**
- * A cost typed in on the Costs tab. `isExtra` = added after the trip without a
- * planned amount (phát sinh). Costs aren't sorted into categories; they are
- * posted under `categoryId` when the plan is closed out.
+ * A cost on the Costs tab: the price of an itinerary stop (`activityId`), or a
+ * cost of its own on a day. `isExtra` = added after the trip without a planned
+ * amount (phát sinh); a stop's price never is. Costs aren't sorted into
+ * categories; they are posted under `categoryId` when the plan is closed out.
  */
 export function newSpendPlanItem(
   input: SpendPlanItemInput,
@@ -479,7 +480,7 @@ export function newSpendPlanItem(
     id: `spi-${crypto.randomUUID()}`,
     categoryId: CATEGORY_IDS.otherExpense,
     ...clean,
-    isExtra: opts.isExtra && clean.estimate === 0,
+    isExtra: opts.isExtra && clean.estimate === 0 && !clean.activityId,
   };
 }
 

@@ -204,18 +204,18 @@ export type SpendPlanItem = {
   actual: number | null;
   /** Unplanned cost that came up (phát sinh). */
   isExtra: boolean;
-  /** When it is paid ("YYYY-MM-DD"); the cost list is sorted by this and `time`. */
+  /** Day of the trip it belongs to ("YYYY-MM-DD"); none = a general cost of the trip. */
   date?: string;
-  /** "HH:mm"; costs without a time go after the timed ones that day. */
-  time?: string;
   /** Where it is paid ("Sân bay Tân Sơn Nhất"). */
   place?: string;
+  /** The itinerary stop this is the price of; its name and place come from the stop. */
+  activityId?: string;
 };
 
 /** What the cost form fills in; the id is made by `newSpendPlanItem`. */
 export type SpendPlanItemInput = Pick<
   SpendPlanItem,
-  'name' | 'estimate' | 'deposit' | 'actual' | 'date' | 'time' | 'place'
+  'name' | 'estimate' | 'deposit' | 'actual' | 'date' | 'place' | 'activityId'
 >;
 
 /** What kind of stop an itinerary entry is; picks its icon and colour. */
