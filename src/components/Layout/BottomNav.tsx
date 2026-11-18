@@ -25,7 +25,6 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={`${item.href}${qs}`}
-              data-module={item.module ?? undefined}
               aria-current={active ? 'page' : undefined}
               className={`tap flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl py-1 ${
                 active ? 'text-accent-deep' : 'text-ink-muted hover:text-ink'

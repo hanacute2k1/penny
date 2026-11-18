@@ -29,6 +29,7 @@ import type {
   SpendPlan,
   SpendPlanInput,
   SpendPlanItem,
+  SpendPlanItemInput,
   Transaction,
   TransactionInput,
   TransportEntry,
@@ -450,6 +451,70 @@ export function updateSpendPlan(s: AppState, id: string, input: SpendPlanInput):
 
 export function setSpendPlanItems(s: AppState, id: string, items: SpendPlanItem[]): AppState {
   return { ...s, spendPlans: s.spendPlans.map((p) => (p.id === id ? { ...p, items } : p)) };
+}
+
+function cleanItemInput(input: SpendPlanItemInput) {
+  return {
+    name: input.name.trim(),
+    estimate: Math.max(0, input.estimate),
+    deposit: Math.max(0, input.deposit),
+    actual: input.actual === null ? null : Math.max(0, input.actual),
+    date: input.date || undefined,
+    time: input.time || undefined,
+    place: input.place?.trim() || undefined,
+  };
+}
+
+/**
+ * A cost typed in on the Costs tab. `isExtra` = added after the trip without a
+ * planned amount (phát sinh). Costs aren't sorted into categories; they are
+ * posted under `categoryId` when the plan is closed out.
+ */
+export function newSpendPlanItem(
+  input: SpendPlanItemInput,
+  opts: { isExtra: boolean },
+): SpendPlanItem {
+  const clean = cleanItemInput(input);
+  return {
+    id: `spi-${crypto.randomUUID()}`,
+    categoryId: CATEGORY_IDS.otherExpense,
+    ...clean,
+    isExtra: opts.isExtra && clean.estimate === 0,
+  };
+}
+
+export function addSpendPlanItem(s: AppState, planId: string, item: SpendPlanItem): AppState {
+  if (!item.name) return s;
+  // Posted as "Other" when closing out; any expense category if that one is gone.
+  const usable = (id: string) =>
+    s.categories.some((c) => c.id === id && c.type === 'expense' && !c.isArchived);
+  const categoryId = usable(item.categoryId)
+    ? item.categoryId
+    : (s.categories.find((c) => c.type === 'expense' && !c.isArchived)?.id ?? item.categoryId);
+  return patchPlan(s, planId, (p) => ({ ...p, items: [...p.items, { ...item, categoryId }] }));
+}
+
+export function updateSpendPlanItem(
+  s: AppState,
+  planId: string,
+  itemId: string,
+  input: SpendPlanItemInput,
+): AppState {
+  const clean = cleanItemInput(input);
+  if (!clean.name) return s;
+  return patchPlan(s, planId, (p) => ({
+    ...p,
+    items: p.items.map((item) =>
+      item.id === itemId
+        ? // Giving an extra a planned amount makes it a planned cost.
+          { ...item, ...clean, isExtra: item.isExtra && clean.estimate === 0 }
+        : item,
+    ),
+  }));
+}
+
+export function removeSpendPlanItem(s: AppState, planId: string, itemId: string): AppState {
+  return patchPlan(s, planId, (p) => ({ ...p, items: p.items.filter((i) => i.id !== itemId) }));
 }
 
 /** Close out a plan: (re)post its actual costs as transactions and mark it done. */

@@ -43,6 +43,7 @@ import type {
   SpendPlan,
   SpendPlanInput,
   SpendPlanItem,
+  SpendPlanItemInput,
   TransactionInput,
   TransportLeg,
   TransportMeterInput,
@@ -97,6 +98,10 @@ type StoreActions = {
   addSpendPlan: (input: SpendPlanInput) => string;
   updateSpendPlan: (id: string, input: SpendPlanInput) => void;
   setSpendPlanItems: (id: string, items: SpendPlanItem[]) => void;
+  /** `isExtra`: added after the trip, not planned (phát sinh). */
+  addSpendPlanItem: (planId: string, input: SpendPlanItemInput, opts: { isExtra: boolean }) => void;
+  updateSpendPlanItem: (planId: string, itemId: string, input: SpendPlanItemInput) => void;
+  removeSpendPlanItem: (planId: string, itemId: string) => void;
   /** Close out a plan: (re)post its actual costs as transactions and mark it done. */
   settleSpendPlan: (id: string) => void;
   reopenSpendPlan: (id: string) => void;
@@ -481,6 +486,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       updateSpendPlan: run(actions.updateSpendPlan),
       setSpendPlanItems: run(actions.setSpendPlanItems),
+      addSpendPlanItem: (planId, input, opts) => {
+        const item = actions.newSpendPlanItem(input, opts);
+        setState((s) => actions.addSpendPlanItem(s, planId, item));
+      },
+      updateSpendPlanItem: run(actions.updateSpendPlanItem),
+      removeSpendPlanItem: run(actions.removeSpendPlanItem),
       settleSpendPlan: run(actions.settleSpendPlan),
       reopenSpendPlan: run(actions.reopenSpendPlan),
       deleteSpendPlan: run(actions.deleteSpendPlan),

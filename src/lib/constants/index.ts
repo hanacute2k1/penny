@@ -5,8 +5,11 @@ export const STORAGE_KEYS = {
   glass: 'valoir-glass',
   locale: 'valoir-locale',
   currency: 'valoir-currency',
-  hiddenModules: 'valoir-hidden-modules',
   entryMode: 'valoir-entry-mode',
+  /** Last exchange rates fetched, for converting money offline while travelling. */
+  exchangeRates: 'valoir-exchange-rates',
+  /** The two currencies last picked in the money exchange. */
+  exchangePair: 'valoir-exchange-pair',
   /** Data kept on the device by the app before accounts existed. */
   legacyData: 'valoir-expense-v7',
 } as const;
@@ -14,7 +17,6 @@ export const STORAGE_KEYS = {
 /** Window events used to tell React that a setting stored outside it has changed. */
 export const CHANGE_EVENTS = {
   appearance: 'valoir-appearance',
-  hiddenModules: 'valoir-hidden-modules',
 } as const;
 
 /** Built-in categories the app relies on. */

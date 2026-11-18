@@ -38,7 +38,6 @@ export function SideNav() {
             <Link
               key={item.href}
               href={`${item.href}${qs}`}
-              data-module={item.module ?? undefined}
               aria-current={active ? 'page' : undefined}
               className={linkClass(active)}
             >

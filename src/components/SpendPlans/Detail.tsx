@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, Share2, Users } from 'lucide-react';
+import { ArrowLeftRight, CalendarDays, Share2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -9,6 +9,7 @@ import { Icon } from '@/components/Base/Icon';
 import { ItemIcon } from '@/components/Base/ItemIcon';
 import { LoadingText } from '@/components/Base/LoadingText';
 import { Segmented } from '@/components/Base/Segmented';
+import { ExchangeSheet } from '@/components/Exchange';
 import { CurrencyScope, useI18n } from '@/contexts/I18nContext';
 import { useStore } from '@/contexts/StoreContext';
 import { todayIso } from '@/lib/helper/date';
@@ -54,6 +55,7 @@ export function SpendPlanDetailView() {
   const [tab, setTab] = useState<Tab>('itinerary');
   const [editOpen, setEditOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [exchangeOpen, setExchangeOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   /** Open activity form: a day to add to, or an existing stop to edit. */
   const [activityForm, setActivityForm] = useState<{
@@ -123,25 +125,31 @@ export function SpendPlanDetailView() {
                 {tx(t.spendPlans.peopleCount, { count: plan.people })}
               </span>
             </p>
-            {status || isTeam ? (
-              <span className="mt-1.5 flex flex-wrap gap-1.5">
-                {status ? (
-                  <span className="rounded-full bg-chart-4/50 px-2.5 py-0.5 text-sm font-semibold">
-                    {status}
-                  </span>
-                ) : null}
-                {isTeam ? (
-                  <button
-                    type="button"
-                    onClick={() => setShareOpen(true)}
-                    className="tap inline-flex items-center gap-1 rounded-full bg-chart-1/50 px-2.5 py-0.5 text-sm font-semibold"
-                  >
-                    <Users size={14} aria-hidden="true" />
-                    {plan.ownerId ? t.spendPlans.teamJoined : t.spendPlans.teamBadge}
-                  </button>
-                ) : null}
-              </span>
-            ) : null}
+            <span className="mt-1.5 flex flex-wrap gap-1.5">
+              {status ? (
+                <span className="rounded-full bg-chart-4/50 px-2.5 py-0.5 text-sm font-semibold">
+                  {status}
+                </span>
+              ) : null}
+              {isTeam ? (
+                <button
+                  type="button"
+                  onClick={() => setShareOpen(true)}
+                  className="tap inline-flex items-center gap-1 rounded-full bg-chart-1/50 px-2.5 py-0.5 text-sm font-semibold"
+                >
+                  <Users size={14} aria-hidden="true" />
+                  {plan.ownerId ? t.spendPlans.teamJoined : t.spendPlans.teamBadge}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setExchangeOpen(true)}
+                className="tap inline-flex items-center gap-1 rounded-full bg-paper px-2.5 py-0.5 text-sm font-semibold"
+              >
+                <ArrowLeftRight size={14} aria-hidden="true" />
+                {t.exchange.open}
+              </button>
+            </span>
             {plan.note ? <p className="mt-1 text-sm text-ink-muted">{plan.note}</p> : null}
           </div>
           <div className="flex shrink-0 gap-2">
@@ -200,7 +208,12 @@ export function SpendPlanDetailView() {
             onRoute={setRouteDay}
           />
         ) : tab === 'costs' ? (
-          <Costs plan={plan} canSettle={isOwner} />
+          <Costs
+            plan={plan}
+            canSettle={isOwner}
+            // Once the trip is over, open on entering what it really cost.
+            initialStage={tripOver || plan.status === 'done' ? 'after' : 'before'}
+          />
         ) : (
           <Checklist
             items={plan.checklist}
@@ -253,6 +266,7 @@ export function SpendPlanDetailView() {
         onClose={() => setRouteDay(null)}
       />
 
+      <ExchangeSheet open={exchangeOpen} onClose={() => setExchangeOpen(false)} />
       <ShareSheet open={shareOpen} plan={plan} onClose={() => setShareOpen(false)} />
 
       <SpendPlanSheet

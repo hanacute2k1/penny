@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { PlanActivity, SpendPlan } from '@/lib/type';
-import { itineraryByDay, normalizeSpendPlan, planDays, summarizeSpendPlan } from '../spendPlans';
+import {
+  groupCostItems,
+  itineraryByDay,
+  normalizeSpendPlan,
+  planDays,
+  sortCostItems,
+  summarizeSpendPlan,
+} from '../spendPlans';
 
 const activity = (id: string, date: string, time?: string): PlanActivity => ({
   id,
@@ -116,4 +123,41 @@ it('fills new fields on plans saved before them', () => {
   const plan = normalizeSpendPlan(old);
   expect(plan).toMatchObject({ people: 1, activities: [], checklist: [] });
   expect(plan.items[0].deposit).toBe(0);
+});
+
+describe('sortCostItems / groupCostItems', () => {
+  const cost = (id: string, date?: string, time?: string) => ({ id, date, time });
+
+  it('orders by day, then time, untimed after timed, no day last', () => {
+    const items = [
+      cost('noDay'),
+      cost('day2'),
+      cost('day1-evening', '2026-12-01', '19:00'),
+      cost('day1-untimed', '2026-12-01'),
+      cost('day1-morning', '2026-12-01', '08:00'),
+      cost('day2-noon', '2026-12-02', '12:00'),
+    ];
+    items[1].date = '2026-12-02';
+    expect(sortCostItems(items).map((i) => i.id)).toEqual([
+      'day1-morning',
+      'day1-evening',
+      'day1-untimed',
+      'day2-noon',
+      'day2',
+      'noDay',
+    ]);
+  });
+
+  it('keeps the order costs were added when day and time are the same', () => {
+    const items = [cost('a', '2026-12-01'), cost('b', '2026-12-01')];
+    expect(sortCostItems(items).map((i) => i.id)).toEqual(['a', 'b']);
+  });
+
+  it('groups by day', () => {
+    const groups = groupCostItems([cost('x'), cost('a', '2026-12-01'), cost('b', '2026-12-01')]);
+    expect(groups.map((g) => [g.date, g.items.length])).toEqual([
+      ['2026-12-01', 2],
+      [null, 1],
+    ]);
+  });
 });

@@ -1,7 +1,5 @@
 'use client';
 
-import { formatAmountText } from '@/lib/helper/format';
-
 import { LoadingText } from '@/components/Base/LoadingText';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -10,6 +8,8 @@ import { useStore } from '@/contexts/StoreContext';
 import { useI18n } from '@/contexts/I18nContext';
 import { inMonth, formatDayHeading } from '@/lib/helper/date';
 import { AddFab } from '@/components/Base/AddFab';
+import { MoneySummary } from '@/components/Base/MoneySummary';
+import { Segmented } from '@/components/Base/Segmented';
 import { Icon } from '@/components/Base/Icon';
 import { TransactionRow } from './TransactionRow';
 import { TransactionSheet } from './TransactionSheet';
@@ -18,7 +18,7 @@ import { iconText } from '@/lib/helper/icons';
 
 export function TransactionsView() {
   const { yearMonth } = useMonth();
-  const { t, locale, categoryName, currency, currencySymbol } = useI18n();
+  const { t, locale, categoryName } = useI18n();
   const searchParams = useSearchParams();
   const categoryFilter = searchParams.get('category') ?? 'all';
   const { ready, categories, transactions, addTransaction, updateTransaction, deleteTransaction } =
@@ -40,7 +40,9 @@ export function TransactionsView() {
     return transactions
       .filter((item) => inMonth(item.date, yearMonth))
       .filter((item) => (type === 'all' ? true : item.type === type))
-      .filter((item) => (categoryId === 'all' ? true : item.categoryId === categoryId))
+      .filter((item) =>
+        categoryId === 'all' || type === 'income' ? true : item.categoryId === categoryId,
+      )
       .filter((item) => {
         if (!q.trim()) return true;
         const cat = catMap.get(item.categoryId);
@@ -62,10 +64,17 @@ export function TransactionsView() {
     return [...map.entries()];
   }, [filtered]);
 
-  const total = filtered.reduce(
-    (s, item) => s + (item.type === 'expense' ? item.amount : -item.amount),
-    0,
-  );
+  /** The whole month, whatever the filters: what came in, what went out. */
+  const month = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const item of transactions) {
+      if (!inMonth(item.date, yearMonth)) continue;
+      if (item.type === 'income') income += item.amount;
+      else expense += item.amount;
+    }
+    return { income, expense };
+  }, [transactions, yearMonth]);
 
   if (!ready) {
     return <LoadingText />;
@@ -73,19 +82,10 @@ export function TransactionsView() {
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
-            {t.nav.activity}
-          </h1>
-          <p className="mt-1 text-[0.9375rem] text-ink-soft">
-            {t.transactions.filterTotal}{' '}
-            <span className="num font-semibold text-ink">
-              {formatAmountText(Math.abs(total), currency)}
-              {currencySymbol}
-            </span>
-          </p>
-        </div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
+          {t.nav.activity}
+        </h1>
         <button
           type="button"
           onClick={() => {
@@ -99,47 +99,57 @@ export function TransactionsView() {
         </button>
       </div>
 
-      <div className="panel mb-4 grid gap-3 p-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:p-4">
-        <label className="relative block">
-          <span className="sr-only">{t.common.searchNotes}</span>
-          <Icon
-            name="search"
-            size={20}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted"
-          />
-          <input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={t.common.searchNotes}
-            className="min-h-12 w-full rounded-xl border border-line bg-paper py-3 pl-11 pr-4 outline-none placeholder:text-ink-muted focus:border-accent focus:ring-2 focus:ring-accent/25"
-          />
-        </label>
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 md:contents">
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            aria-label={t.transactions.category}
-            className="min-h-12 min-w-0 rounded-xl border border-line bg-surface px-3 text-[0.9375rem] font-medium outline-none focus:border-accent"
-          >
-            <option value="all">{t.transactions.allCategories}</option>
-            {expenseCats.map((c) => (
-              <option key={c.id} value={c.id}>
-                {iconText(c.icon)}
-                {categoryName(c)}
-              </option>
-            ))}
-          </select>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as typeof type)}
-            aria-label={t.transactions.incomeAndExpense}
-            className="min-h-12 min-w-0 rounded-xl border border-line bg-surface px-3 text-[0.9375rem] font-medium outline-none focus:border-accent"
-          >
-            <option value="all">{t.transactions.incomeAndExpense}</option>
-            <option value="expense">{t.transactions.expense}</option>
-            <option value="income">{t.transactions.income}</option>
-          </select>
+      <div className="mb-4">
+        <MoneySummary
+          title={t.transactions.monthSummary}
+          income={month.income}
+          expense={month.expense}
+        />
+      </div>
+
+      <div className="panel mb-4 space-y-3 p-3 md:p-4">
+        <Segmented
+          value={type}
+          onChange={setType}
+          ariaLabel={t.transactions.typeAll}
+          options={[
+            { value: 'all', label: t.transactions.typeAll },
+            { value: 'expense', label: t.transactions.expense },
+            { value: 'income', label: t.transactions.income },
+          ]}
+        />
+        <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+          <label className="relative block">
+            <span className="sr-only">{t.common.searchNotes}</span>
+            <Icon
+              name="search"
+              size={20}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted"
+            />
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t.common.searchNotes}
+              className="min-h-12 w-full rounded-xl border border-line bg-paper py-3 pl-11 pr-4 outline-none placeholder:text-ink-muted focus:border-accent focus:ring-2 focus:ring-accent/25"
+            />
+          </label>
+          {type !== 'income' ? (
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              aria-label={t.transactions.category}
+              className="min-h-12 min-w-0 rounded-xl border border-line bg-surface px-3 text-[0.9375rem] font-medium outline-none focus:border-accent"
+            >
+              <option value="all">{t.transactions.allCategories}</option>
+              {expenseCats.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {iconText(c.icon)}
+                  {categoryName(c)}
+                </option>
+              ))}
+            </select>
+          ) : null}
         </div>
       </div>
 

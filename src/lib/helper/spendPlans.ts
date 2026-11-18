@@ -73,6 +73,38 @@ export function summarizeSpendPlan(
   };
 }
 
+/**
+ * Costs in the order they are paid: by day, then time (untimed after timed that
+ * day), costs with no day last; otherwise in the order they were added.
+ */
+export function sortCostItems<T extends Pick<SpendPlanItem, 'date' | 'time'>>(items: T[]): T[] {
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      const dayA = a.item.date ?? '9999-99-99';
+      const dayB = b.item.date ?? '9999-99-99';
+      if (dayA !== dayB) return dayA.localeCompare(dayB);
+      const timeA = a.item.time ?? '99:99';
+      const timeB = b.item.time ?? '99:99';
+      return timeA.localeCompare(timeB) || a.index - b.index;
+    })
+    .map(({ item }) => item);
+}
+
+/** Sorted costs split by day; `date` is null for the ones with no day. */
+export function groupCostItems<T extends Pick<SpendPlanItem, 'date' | 'time'>>(
+  items: T[],
+): Array<{ date: string | null; items: T[] }> {
+  const groups: Array<{ date: string | null; items: T[] }> = [];
+  for (const item of sortCostItems(items)) {
+    const date = item.date ?? null;
+    const last = groups[groups.length - 1];
+    if (last && last.date === date) last.items.push(item);
+    else groups.push({ date, items: [item] });
+  }
+  return groups;
+}
+
 /** Fills fields added later (deposit, people, itinerary, checklist) on plans saved before them. */
 export function normalizeSpendPlan(plan: SpendPlan): SpendPlan {
   return {
@@ -244,8 +276,8 @@ export function spendPlanTransactions(plan: SpendPlan): Transaction[] {
       categoryId: item.categoryId,
       amount: item.actual ?? 0,
       type: 'expense' as const,
-      date,
-      note: `${plan.title} · ${item.name}`,
+      date: item.date ?? date,
+      note: [plan.title, item.name, item.place].filter(Boolean).join(' · '),
       spendPlanId: plan.id,
       createdAt,
     }));

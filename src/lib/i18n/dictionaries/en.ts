@@ -20,9 +20,6 @@ export type Dictionary = {
   nav: {
     overview: string;
     activity: string;
-    budget: string;
-    reports: string;
-    transport: string;
     plans: string;
   };
   month: {
@@ -33,30 +30,33 @@ export type Dictionary = {
     thisMonth: string;
   };
   dashboard: {
-    remainingBudget: string;
-    budgetSpent: string;
     income: string;
     expense: string;
     byCategory: string;
-    recent: string;
-    noTransactions: string;
-    addExpense: string;
-    fixedThisMonth: string;
-    manageFixed: string;
-    upcomingNotes: string;
-    managePlans: string;
-    addIncome: string;
-    nearLimit: string;
-    overBudget: string;
-    noBudget: string;
-    setBudget: string;
+    net: string;
+    surplus: string;
+    deficit: string;
+    even: string;
+    periodMonth: string;
+    periodYear: string;
+    periodCustom: string;
+    periodLabel: string;
+    from: string;
+    to: string;
+    previousYear: string;
+    nextYear: string;
+    count: string;
+    perDay: string;
+    trendDay: string;
+    trendMonth: string;
+    point: string;
+    empty: string;
+    remainingBudget: string;
   };
   transactions: {
     allCategories: string;
-    incomeAndExpense: string;
     expense: string;
     income: string;
-    filterTotal: string;
     empty: string;
     add: string;
     edit: string;
@@ -77,51 +77,8 @@ export type Dictionary = {
     fromWherePlaceholder: string;
     frequent: string;
     customHint: string;
-  };
-  budgets: {
-    totalLimit: string;
-    spentLeft: string;
-    copyPrevious: string;
-    spent: string;
-    limit: string;
-    save: string;
-    saved: string;
-    copyConfirm: string;
-    copyConfirmButton: string;
-    copied: string;
-    undo: string;
-    noPrevious: string;
-  };
-  reports: {
-    tabYear: string;
-    tabMonth: string;
-    breakdown: string;
-    spent: string;
-    daily: string;
-    day: string;
-    topCategories: string;
-    empty: string;
-  };
-  year: {
-    title: string;
-    previous: string;
-    next: string;
-    yearTotals: string;
-    balance: string;
-    activeMonths: string;
-    avgExpense: string;
-    monthlySpend: string;
-    highestSpend: string;
-    bestBalance: string;
-    monthList: string;
-    vsPrevious: string;
-    expenseDelta: string;
-    balanceDelta: string;
-    noChange: string;
-    empty: string;
-    upToNow: string;
-    upcomingNotes: string;
-    notesCount: string;
+    typeAll: string;
+    monthSummary: string;
   };
   settings: {
     title: string;
@@ -143,8 +100,6 @@ export type Dictionary = {
     glassOn: string;
     glassOff: string;
     glassHint: string;
-    modules: string;
-    modulesHint: string;
     textSize: string;
     textSmaller: string;
     textLarger: string;
@@ -224,43 +179,20 @@ export type Dictionary = {
     autoHint: string;
     futureMonthHint: string;
   };
-  transport: {
-    title: string;
-    subtitle: string;
-    monthTotal: string;
-    open: string;
-    addMeter: string;
-    editMeter: string;
-    name: string;
-    namePlaceholder: string;
-    icon: string;
-    empty: string;
-    back: string;
-    viewMode: string;
-    viewCalendar: string;
-    viewStrip: string;
-    today: string;
-    logToday: string;
-    dayAmount: string;
-    clear: string;
-    save: string;
-    cancel: string;
-    noSpend: string;
-    daysLogged: string;
-    archive: string;
-    archiveConfirm: string;
-    legsHint: string;
-    leg: string;
-    addLeg: string;
-    removeLeg: string;
-    from: string;
-    to: string;
-    dayTotal: string;
-    noLegs: string;
-    unnamedLeg: string;
-    chooseIcon: string;
-  };
   spendPlans: {
+    costList: string;
+    addCost: string;
+    editCost: string;
+    costName: string;
+    costNamePlaceholder: string;
+    costPlace: string;
+    costPlacePlaceholder: string;
+    costDate: string;
+    costTime: string;
+    costNoDate: string;
+    costEmpty: string;
+    costDelete: string;
+    costPaidAhead: string;
     title: string;
     subtitle: string;
     create: string;
@@ -283,9 +215,6 @@ export type Dictionary = {
     estimate: string;
     actual: string;
     extras: string;
-    extrasHint: string;
-    addExtra: string;
-    extraPlaceholder: string;
     left: string;
     over: string;
     onTarget: string;
@@ -331,11 +260,9 @@ export type Dictionary = {
     markDone: string;
     anyTime: string;
     deposit: string;
-    totalAfter: string;
     remaining: string;
     perPerson: string;
     expected: string;
-    costsHint: string;
     estimateShort: string;
     checklistTitle: string;
     checklistPlaceholder: string;
@@ -450,6 +377,30 @@ export type Dictionary = {
     happening: string;
     templates: Record<SpendPlanTemplateKey, string>;
     templateItems: Record<SpendPlanItemKey, string>;
+    costsBefore: string;
+    costsAfter: string;
+    beforeHint: string;
+    afterHint: string;
+    planned: string;
+    spentReal: string;
+    gap: string;
+    afterEmpty: string;
+  };
+  exchange: {
+    title: string;
+    open: string;
+    from: string;
+    to: string;
+    amount: string;
+    swap: string;
+    updated: string;
+    saved: string;
+    loading: string;
+    error: string;
+    retry: string;
+    notes: string;
+    notesHint: string;
+    disclaimer: string;
   };
   auth: {
     title: string;
@@ -573,9 +524,6 @@ export const en: Dictionary = {
   nav: {
     overview: 'Overview',
     activity: 'Activity',
-    budget: 'Budget',
-    reports: 'Reports',
-    transport: 'Transit',
     plans: 'Plans',
   },
   month: {
@@ -586,30 +534,33 @@ export const en: Dictionary = {
     thisMonth: 'This month',
   },
   dashboard: {
-    remainingBudget: 'Left to spend',
-    budgetSpent: 'Spent {spent} of {budget}',
     income: 'Income',
-    expense: 'Expense',
-    byCategory: 'By category',
-    recent: 'Recent',
-    noTransactions: 'No transactions yet',
-    addExpense: 'Add expense',
-    fixedThisMonth: 'Fixed this month',
-    manageFixed: 'Manage ›',
-    upcomingNotes: 'Coming up',
-    managePlans: 'All plans ›',
-    addIncome: 'Add income',
-    nearLimit: 'Close to your limit — slow down a little',
-    overBudget: 'Over budget by {amount}',
-    noBudget: 'No budget yet',
-    setBudget: 'Set one up ›',
+    expense: 'Spent',
+    byCategory: 'Spending by category',
+    net: 'Balance',
+    surplus: 'Saved {amount}',
+    deficit: 'Short by {amount}',
+    even: 'Even',
+    periodMonth: 'Month',
+    periodYear: 'Year',
+    periodCustom: 'Dates',
+    periodLabel: 'Period',
+    from: 'From',
+    to: 'To',
+    previousYear: 'Previous year',
+    nextYear: 'Next year',
+    count: '{count} transactions',
+    perDay: 'About {amount} a day',
+    trendDay: 'Spending by day',
+    trendMonth: 'Spending by month',
+    point: '{label}: {amount}',
+    empty: 'No transactions in this period yet.',
+    remainingBudget: 'Left to spend',
   },
   transactions: {
     allCategories: 'All categories',
-    incomeAndExpense: 'Income & Expense',
     expense: 'Expense',
     income: 'Income',
-    filterTotal: 'Total:',
     empty: 'No matching transactions',
     add: 'Add transaction',
     edit: 'Edit transaction',
@@ -630,51 +581,8 @@ export const en: Dictionary = {
     fromWherePlaceholder: 'e.g. Sold old phone, gift',
     frequent: 'You often type',
     customHint: 'Saved under “{category}” so it still counts in your reports.',
-  },
-  budgets: {
-    totalLimit: 'Total limit',
-    spentLeft: 'Spent {spent} · left {left}',
-    copyPrevious: 'Copy from previous month',
-    spent: 'Spent {amount}',
-    limit: 'Limit',
-    save: 'Save budget',
-    saved: 'Saved ✓',
-    copyConfirm: "Copy last month's budget into this month? Current limits will be replaced.",
-    copyConfirmButton: 'Copy',
-    copied: "Copied last month's budget",
-    undo: 'Undo',
-    noPrevious: 'Last month has no budget to copy',
-  },
-  reports: {
-    tabYear: 'Year',
-    tabMonth: 'This month',
-    breakdown: 'Where did it go?',
-    spent: 'Spent',
-    daily: 'Daily spend',
-    day: 'Day {day}: {amount}',
-    topCategories: 'Top categories',
-    empty: 'No expenses to report yet',
-  },
-  year: {
-    title: 'Year review',
-    previous: 'Previous year',
-    next: 'Next year',
-    yearTotals: 'Year totals',
-    balance: 'Balance',
-    activeMonths: 'Months tracked: {count}',
-    avgExpense: 'About {amount}/month',
-    monthlySpend: 'Monthly spend',
-    highestSpend: 'Biggest spending month',
-    bestBalance: 'Best saving month',
-    monthList: 'Months',
-    vsPrevious: 'vs previous month',
-    expenseDelta: 'Spend',
-    balanceDelta: 'Balance',
-    noChange: '0',
-    empty: 'No activity in this year yet',
-    upToNow: 'Up to {month}',
-    upcomingNotes: 'Coming up',
-    notesCount: '{count} planned',
+    typeAll: 'All',
+    monthSummary: 'This month',
   },
   settings: {
     title: 'Settings',
@@ -696,8 +604,6 @@ export const en: Dictionary = {
     glassOn: 'Turn off Liquid Glass',
     glassOff: 'Turn on Liquid Glass',
     glassHint: 'Frosted-glass look for the bars and buttons',
-    modules: 'Sections',
-    modulesHint: "Turn off what you don't use. Overview and Transactions stay on.",
     textSize: 'Text size',
     textSmaller: 'Smaller text',
     textLarger: 'Larger text',
@@ -778,43 +684,20 @@ export const en: Dictionary = {
     autoHint: "When the month comes, it's added to your transactions.",
     futureMonthHint: 'A future month — nothing has been charged yet',
   },
-  transport: {
-    title: 'Transit',
-    subtitle: 'Log Grab, fuel, bus… day by day',
-    monthTotal: 'Spent this month',
-    open: 'Log spend ›',
-    addMeter: 'Add transit type',
-    editMeter: 'Edit type',
-    name: 'Name',
-    namePlaceholder: 'e.g. Bus, Train, Bike',
-    icon: 'Icon',
-    empty: 'No types yet. Add Grab, fuel, bus…',
-    back: '‹ Back to Transit',
-    viewMode: 'How to view',
-    viewCalendar: 'Calendar view',
-    viewStrip: 'List view',
-    today: 'Today',
-    logToday: 'Log today’s spend',
-    dayAmount: 'Amount for {date}',
-    clear: 'Delete this day’s spend',
-    save: 'Save spend',
-    cancel: 'Cancel',
-    noSpend: 'No spend yet',
-    daysLogged: 'Days logged: {count}',
-    archive: 'Remove {name}',
-    archiveConfirm: 'Remove {name} from Transit? Past logs stay in Activity.',
-    legsHint: 'e.g. Home → Office',
-    leg: 'Leg',
-    addLeg: 'Add another leg',
-    removeLeg: 'Remove this leg',
-    from: 'From',
-    to: 'To',
-    dayTotal: 'Day total',
-    noLegs: 'No legs logged',
-    unnamedLeg: 'Trip',
-    chooseIcon: 'Choose an icon',
-  },
   spendPlans: {
+    costList: 'Costs',
+    addCost: 'Add a cost',
+    editCost: 'Edit cost',
+    costName: 'What for',
+    costNamePlaceholder: 'e.g. Flights, seafood dinner',
+    costPlace: 'Where',
+    costPlacePlaceholder: 'e.g. Night market',
+    costDate: 'Day',
+    costTime: 'Time',
+    costNoDate: 'No day set',
+    costEmpty: 'No costs yet. Add tickets, rooms, meals… with when and where you pay.',
+    costDelete: 'Delete cost',
+    costPaidAhead: '{amount} paid',
     title: 'Plans',
     subtitle: 'Itinerary, costs and packing for every trip',
     create: 'New plan',
@@ -837,9 +720,6 @@ export const en: Dictionary = {
     estimate: 'Planned',
     actual: 'Actual',
     extras: 'Extra costs',
-    extrasHint: "Things you didn't plan for",
-    addExtra: 'Add extra',
-    extraPlaceholder: 'e.g. Parking',
     left: 'Left over {amount}',
     over: 'Over by {amount}',
     onTarget: 'Right on plan',
@@ -891,11 +771,9 @@ export const en: Dictionary = {
     markDone: 'Mark as done',
     anyTime: 'Any time',
     deposit: 'Deposit',
-    totalAfter: 'Total after',
     remaining: 'Left to pay',
     perPerson: 'Per person',
     expected: 'Expected total',
-    costsHint: 'Before the trip, enter deposits. After it, enter what each thing cost in total.',
     estimateShort: 'Planned {amount}',
     checklistTitle: 'To pack & prepare',
     checklistPlaceholder: 'Add something to bring',
@@ -1040,6 +918,30 @@ export const en: Dictionary = {
       clothes: 'Clothes',
       household: 'Household',
     },
+    costsBefore: 'Before the trip',
+    costsAfter: 'After the trip',
+    beforeHint: 'Plan each cost and note what you already paid.',
+    afterHint: 'Back home? Enter what each cost really was.',
+    planned: 'Planned',
+    spentReal: 'Spent',
+    gap: 'Difference',
+    afterEmpty: 'Nothing entered yet. Fill in the real amounts below.',
+  },
+  exchange: {
+    title: 'Money exchange',
+    open: 'Exchange',
+    from: 'From',
+    to: 'To',
+    amount: 'Amount',
+    swap: 'Swap currencies',
+    updated: 'Updated {time}',
+    saved: 'Offline — rates from {time}',
+    loading: 'Getting rates…',
+    error: "Couldn't get rates.",
+    retry: 'Try again',
+    notes: '{code} banknotes',
+    notesHint: 'Tap a note to convert it',
+    disclaimer: 'Mid-market rate, for reference. Exchange counters usually give 1–3% less.',
   },
   auth: {
     title: 'Sign in to Penny',

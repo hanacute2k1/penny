@@ -114,14 +114,6 @@ html[data-theme='dark'] {
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
-/* Sections switched off in Settings (see src/lib/modules.ts). */
-html[data-hidden~='budgets'] [data-module='budgets'],
-html[data-hidden~='plan'] [data-module='plan'],
-html[data-hidden~='transport'] [data-module='transport'],
-html[data-hidden~='reports'] [data-module='reports'] {
-  display: none !important;
-}
-
 /* Dark: fills inside cards/sheets sit one step lighter than the card. */
 html[data-theme='dark']:not([data-glass='on']) :is(.panel, .animate-sheet) {
   --paper: #2c2c2e;

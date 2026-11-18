@@ -9,12 +9,9 @@ import { LOCALES } from '@/lib/i18n';
 import { ThemeToggle } from '@/components/Base/ThemeToggle';
 import { Icon, type IconName } from '@/components/Base/Icon';
 import { Segmented } from '@/components/Base/Segmented';
-import { Switch } from '@/components/Base/Switch';
 import { TextSizeSlider } from './TextSizeSlider';
 import { ResetDataSheet } from './ResetDataSheet';
 import { Toast } from '@/components/Base/Toast';
-import { navItems } from '@/components/Layout/navItems';
-import { useHiddenModules } from '@/hooks/useHiddenModules';
 import { createClient } from '@/lib/supabase/client';
 import { ConfirmDialog } from '@/components/Base/ConfirmDialog';
 import { SaveAccountSheet } from '@/components/Auth/SaveAccountSheet';
@@ -28,7 +25,6 @@ function preview(names: string[]) {
 export function SettingsView({ email, isGuest }: { email: string | null; isGuest: boolean }) {
   const { categories, recurringRules, monthPlans } = useStore();
   const { t, tx, locale, setLocale, categoryName } = useI18n();
-  const { hidden, setVisible } = useHiddenModules();
   const [resetOpen, setResetOpen] = useState(false);
   const [resetDone, setResetDone] = useState(false);
 
@@ -104,28 +100,6 @@ export function SettingsView({ email, isGuest }: { email: string | null; isGuest
       </div>
 
       <div className="panel mt-4 overflow-hidden">
-        <Section icon="eye" tone={3} title={t.settings.modules} hint={t.settings.modulesHint}>
-          <ul className="-mx-2">
-            {navItems(t).map((item) =>
-              item.module ? (
-                <li key={item.href}>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={!hidden.includes(item.module)}
-                    onClick={() => setVisible(item.module, hidden.includes(item.module))}
-                    className="tap flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left hover:bg-paper"
-                  >
-                    <Icon name={item.icon} className="text-ink-soft" />
-                    <span className="flex-1 font-medium">{item.label}</span>
-                    <Switch on={!hidden.includes(item.module)} />
-                  </button>
-                </li>
-              ) : null,
-            )}
-          </ul>
-        </Section>
-
         <Section icon="sun" tone={6} title={t.settings.theme}>
           <ThemeToggle />
         </Section>

@@ -8,7 +8,6 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { GlassLensFilter } from '@/components/Base/GlassLensFilter';
 import { themeTokens } from '@/lib/theme/tokens';
 import { STORAGE_KEYS } from '@/lib/constants';
-import { OPTIONAL_MODULES } from '@/lib/helper/modules';
 import { TEXT_SIZE_MAX, TEXT_SIZE_MIN } from '@/lib/theme';
 import { StoreProvider } from '@/contexts/StoreContext';
 import { LOCALE_COOKIE } from '@/lib/i18n';
@@ -70,10 +69,6 @@ const themeBootScript = `
     root.dataset.glass = glass === 'on' ? 'on' : 'off';
     // Lens refraction needs SVG backdrop filters, which only Chromium renders.
     if (window.chrome && !/Firefox|FxiOS/.test(navigator.userAgent)) root.dataset.refract = 'on';
-    var known = ${JSON.stringify(OPTIONAL_MODULES)};
-    var hidden = (localStorage.getItem(${JSON.stringify(STORAGE_KEYS.hiddenModules)}) || '')
-      .split(' ').filter(function (m) { return known.indexOf(m) !== -1; });
-    root.dataset.hidden = hidden.join(' ');
     var locale = (document.cookie.match(/(?:^|; )${LOCALE_COOKIE}=([a-z]+)/) || [])[1]
       || localStorage.getItem(${JSON.stringify(LOCALE_COOKIE)});
     if (locale === 'vi' || locale === 'en' || locale === 'ko') root.lang = locale;

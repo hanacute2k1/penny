@@ -256,6 +256,78 @@ describe('spend plans', () => {
   });
 });
 
+describe('trip costs', () => {
+  const withPlan = () => {
+    const p = actions.newSpendPlan({
+      title: 'Bangkok',
+      icon: '✈️',
+      startDate: '2026-12-01',
+      endDate: '2026-12-04',
+      people: 1,
+      items: [],
+    });
+    return { s: actions.addSpendPlan(base(), p), id: p.id };
+  };
+  const input = {
+    name: ' Ăn tối ',
+    place: ' Chợ đêm ',
+    date: '2026-12-02',
+    time: '19:30',
+    estimate: 300_000,
+    deposit: 0,
+    actual: null,
+  };
+
+  it('adds a cost with its day, time and place, trimmed', () => {
+    const { s, id } = withPlan();
+    const next = actions.addSpendPlanItem(
+      s,
+      id,
+      actions.newSpendPlanItem(input, { isExtra: false }),
+    );
+    const item = next.spendPlans[0].items[0];
+    expect(item).toMatchObject({
+      name: 'Ăn tối',
+      place: 'Chợ đêm',
+      date: '2026-12-02',
+      time: '19:30',
+    });
+    expect(next.categories.some((c) => c.id === item.categoryId)).toBe(true);
+  });
+
+  it('ignores a cost without a name', () => {
+    const { s, id } = withPlan();
+    const item = actions.newSpendPlanItem({ ...input, name: '  ' }, { isExtra: false });
+    expect(actions.addSpendPlanItem(s, id, item)).toBe(s);
+  });
+
+  it('an extra given a planned amount becomes a planned cost', () => {
+    const { s, id } = withPlan();
+    const extra = actions.newSpendPlanItem(
+      { ...input, estimate: 0, actual: 50_000 },
+      { isExtra: true },
+    );
+    let next = actions.addSpendPlanItem(s, id, extra);
+    expect(next.spendPlans[0].items[0].isExtra).toBe(true);
+    next = actions.updateSpendPlanItem(next, id, extra.id, { ...input, estimate: 40_000 });
+    expect(next.spendPlans[0].items[0].isExtra).toBe(false);
+    next = actions.removeSpendPlanItem(next, id, extra.id);
+    expect(next.spendPlans[0].items).toHaveLength(0);
+  });
+
+  it('posts each cost on the day it was paid, with where', () => {
+    const { s, id } = withPlan();
+    let next = actions.addSpendPlanItem(
+      s,
+      id,
+      actions.newSpendPlanItem({ ...input, actual: 320_000 }, { isExtra: false }),
+    );
+    next = actions.settleSpendPlan(next, id);
+    const posted = next.transactions.find((t) => t.spendPlanId === id);
+    expect(posted).toMatchObject({ date: '2026-12-02', note: 'Bangkok · Ăn tối · Chợ đêm' });
+  });
+});
+
 describe('planning together', () => {
   const plan = () =>
     actions.newSpendPlan({

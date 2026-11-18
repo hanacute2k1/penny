@@ -12,7 +12,6 @@ import { IconPicker } from '@/components/Base/IconPicker';
 import { ItemIcon } from '@/components/Base/ItemIcon';
 import { Icon } from '@/components/Base/Icon';
 import { AmountInput } from '@/components/Base/AmountInput';
-import { CategorySelect } from './shared';
 import type { Category, SpendPlan, SpendPlanInput } from '@/lib/type';
 
 type DraftItem = SpendPlanInput['items'][number];
@@ -204,11 +203,6 @@ function SheetBody({ onClose, initial, categories, onSave }: SheetProps) {
           {items.map((item, index) =>
             item.isExtra ? null : (
               <li key={item.id ?? `new-${index}`} className="flex items-center gap-2">
-                <CategorySelect
-                  value={item.categoryId}
-                  categories={expenseCats}
-                  onChange={(categoryId) => updateItem(index, { categoryId })}
-                />
                 <input
                   value={item.name}
                   onChange={(e) => updateItem(index, { name: e.target.value })}

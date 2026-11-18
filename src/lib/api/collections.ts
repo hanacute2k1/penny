@@ -109,6 +109,12 @@ export const spendPlanSchema = z.object({
         deposit: money.default(0),
         actual: money.nullable(),
         isExtra: z.boolean(),
+        date: isoDate.optional(),
+        time: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional(),
+        place: text(200).optional(),
       }),
     )
     .max(200),

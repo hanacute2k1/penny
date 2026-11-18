@@ -6,7 +6,7 @@
 src/
 ├── app/                      # Route (App Router)
 │   ├── layout.tsx            # Boot script (theme, cỡ chữ, glass, mục ẩn) + providers
-│   ├── (main)/               # Tổng quan, Giao dịch, Ngân sách, Kế hoạch, Đi lại, Báo cáo
+│   ├── (main)/               # 3 tab: Tổng quan (gồm báo cáo), Giao dịch, Kế hoạch
 │   ├── settings/             # Cài đặt, Danh mục, Chi cố định, Khoản dự kiến
 │   ├── login/, auth/callback # Đăng nhập tên + mật khẩu, khách, Google
 │   └── api/v1/               # REST API (Route Handler)
@@ -16,7 +16,7 @@ src/
 │   ├── Layout/               # Khung app: thanh bên, thanh dưới, chọn tháng, báo lỗi sync
 │   └── [Feature]/            # index.tsx = màn hình chính, các file khác = phần con
 ├── contexts/                 # StoreContext, ThemeContext, I18nContext
-├── hooks/                    # useMonth (?month=YYYY-MM), useHiddenModules
+├── hooks/                    # useMonth (?month=YYYY-MM)
 ├── lib/
 │   ├── store/                # state.ts (AppState, reset, diff), actions.ts, seed.ts
 │   ├── helper/               # Hàm thuần: format, date, recurring, monthPlans, spendPlans…
@@ -51,5 +51,5 @@ Tên đăng nhập + mật khẩu (Supabase email/password: tên được lưu t
 
 ## Giao diện, ngôn ngữ
 
-- Theme, cỡ chữ, Liquid Glass và các mục bị ẩn được áp lên `<html>` bởi boot script trong `app/layout.tsx` **trước khi vẽ**, nên tải lại trang không bị nháy. React đọc lại chúng qua `useSyncExternalStore` (`ThemeContext`, `useHiddenModules`).
+- Theme, cỡ chữ và Liquid Glass được áp lên `<html>` bởi boot script trong `app/layout.tsx` **trước khi vẽ**, nên tải lại trang không bị nháy. React đọc lại chúng qua `useSyncExternalStore` (`ThemeContext`).
 - Ngôn ngữ lưu trong cookie `valoir-locale`; server đọc cookie (hoặc `Accept-Language`) để render đúng ngôn ngữ ngay lần đầu.

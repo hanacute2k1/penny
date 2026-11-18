@@ -1,120 +1,100 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { AddFab } from '@/components/Base/AddFab';
 import { LoadingText } from '@/components/Base/LoadingText';
+import { MoneySummary } from '@/components/Base/MoneySummary';
 import { TransactionSheet } from '@/components/Transactions/TransactionSheet';
 import { useI18n } from '@/contexts/I18nContext';
 import { useStore } from '@/contexts/StoreContext';
 import { useMonth } from '@/hooks/useMonth';
-import { currentYearMonth, shiftYearMonth, todayIso } from '@/lib/helper/date';
-import { plansForMonth, upcomingPlans } from '@/lib/helper/monthPlans';
-import { ruleAppliesToMonth, sumFixedForMonth } from '@/lib/helper/recurring';
-import { openSpendPlans } from '@/lib/helper/spendPlans';
-import type { Transaction } from '@/lib/type';
-import { HeroCard } from './HeroCard';
+import { yearFromYearMonth } from '@/lib/helper/date';
 import {
-  CategoriesCard,
-  FixedCostsCard,
-  MonthPlansCard,
-  RecentCard,
-  SpendPlansCard,
-} from './Sections';
+  monthPeriod,
+  orderPeriod,
+  summarizePeriod,
+  yearPeriod,
+  type Period,
+} from '@/lib/helper/period';
+import { CategoryBreakdown } from './CategoryBreakdown';
+import { PeriodPicker, type PeriodKind } from './PeriodPicker';
+import { TrendChart } from './TrendChart';
 
-/** Overview: the month's status card, then recent activity and the smaller cards. */
+/**
+ * Overview: income, spending and the gap for the period you pick (a month, a
+ * year or any dates), then where the money went and how it moved over time.
+ */
 export function DashboardView() {
-  const { yearMonth } = useMonth();
-  const { t } = useI18n();
-  const {
-    ready,
-    categories,
-    recurringRules,
-    monthPlans,
-    spendPlans,
-    getMonthView,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-  } = useStore();
-  const view = useMemo(() => getMonthView(yearMonth), [getMonthView, yearMonth]);
+  const { yearMonth, shift } = useMonth();
+  const { t, tx, money } = useI18n();
+  const { ready, transactions, categories, addTransaction } = useStore();
+  const [kind, setKind] = useState<PeriodKind>('month');
+  const [custom, setCustom] = useState<Period>(() => monthPeriod(yearMonth));
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [editing, setEditing] = useState<Transaction | null>(null);
-  const [sheetType, setSheetType] = useState<'expense' | 'income'>('expense');
-  // Read once on mount; the page is rendered per request, so server and browser agree.
-  const [nowMonth] = useState(currentYearMonth);
 
-  const catMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
-  const isFutureMonth = yearMonth > nowMonth;
-
-  const fixedRules = useMemo(
-    () => recurringRules.filter((r) => r.type === 'expense' && ruleAppliesToMonth(r, yearMonth)),
-    [recurringRules, yearMonth],
-  );
-  const monthNotes = useMemo(() => plansForMonth(monthPlans, yearMonth), [monthPlans, yearMonth]);
-  const upcoming = useMemo(
-    () => upcomingPlans(monthPlans, shiftYearMonth(nowMonth, 1)).slice(0, 4),
-    [monthPlans, nowMonth],
+  const year = yearFromYearMonth(yearMonth);
+  const period =
+    kind === 'month'
+      ? monthPeriod(yearMonth)
+      : kind === 'year'
+        ? yearPeriod(year)
+        : orderPeriod(custom);
+  const summary = useMemo(
+    () => summarizePeriod(transactions, period),
+    // `period` is rebuilt every render; its ends are what matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [transactions, period.from, period.to],
   );
 
   if (!ready) return <LoadingText />;
 
-  const today = todayIso();
-  const activePlans = openSpendPlans(spendPlans, today).slice(0, 3);
-  const planItems = isFutureMonth ? monthNotes : upcoming;
-  const topCategories = view.categories.filter((c) => c.limit > 0 || c.spent > 0).slice(0, 4);
-
-  const openNew = (type: 'expense' | 'income') => {
-    setEditing(null);
-    setSheetType(type);
-    setSheetOpen(true);
-  };
-
   return (
     <>
-      <h1 className="sr-only">{t.nav.overview}</h1>
+      <h1 className="mb-4 text-2xl font-semibold tracking-tight md:text-[1.75rem]">
+        {t.nav.overview}
+      </h1>
 
-      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-4 md:gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <HeroCard view={view} yearMonth={yearMonth} onAdd={openNew} />
-
-        <RecentCard
-          yearMonth={yearMonth}
-          transactions={view.recentTransactions.slice(0, 6)}
-          catMap={catMap}
-          onOpen={(tx) => {
-            setEditing(tx);
-            setSheetOpen(true);
-          }}
-        />
-
-        <div className="flex flex-col gap-4 md:gap-5">
-          {activePlans.length > 0 ? <SpendPlansCard plans={activePlans} today={today} /> : null}
-          <CategoriesCard yearMonth={yearMonth} items={topCategories} catMap={catMap} />
-          {!isFutureMonth ? (
-            <FixedCostsCard
-              rules={fixedRules}
-              total={sumFixedForMonth(recurringRules, yearMonth, 'expense')}
-              catMap={catMap}
+      <div className="mx-auto grid max-w-5xl gap-4 md:gap-5 lg:grid-cols-2">
+        <div className="space-y-4 md:space-y-5">
+          <div className="panel p-3 md:p-4">
+            <PeriodPicker
+              kind={kind}
+              onKind={setKind}
+              year={year}
+              onYear={(delta) => shift(delta * 12)}
+              custom={custom}
+              onCustom={setCustom}
             />
-          ) : null}
-          {planItems.length > 0 ? (
-            <MonthPlansCard plans={planItems} isFutureMonth={isFutureMonth} catMap={catMap} />
-          ) : null}
+          </div>
+          <MoneySummary
+            income={summary.income}
+            expense={summary.expense}
+            footer={
+              summary.count
+                ? `${tx(t.dashboard.count, { count: summary.count })} · ${tx(t.dashboard.perDay, {
+                    amount: money(summary.expensePerDay, { compact: true }),
+                  })}`
+                : t.dashboard.empty
+            }
+          />
+        </div>
+
+        <TrendChart summary={summary} />
+
+        <div className="lg:col-span-2">
+          <CategoryBreakdown summary={summary} categories={categories} />
         </div>
       </div>
 
+      <div className="md:hidden">
+        <AddFab label={t.transactions.add} onClick={() => setSheetOpen(true)} />
+      </div>
       <TransactionSheet
         open={sheetOpen}
-        onClose={() => {
-          setSheetOpen(false);
-          setEditing(null);
-        }}
+        onClose={() => setSheetOpen(false)}
         categories={categories}
-        initial={editing}
-        defaultType={sheetType}
-        onSave={(input) => {
-          if (editing) updateTransaction(editing.id, input);
-          else addTransaction(input);
-        }}
-        onDelete={editing ? () => deleteTransaction(editing.id) : undefined}
+        initial={null}
+        onSave={(input) => addTransaction(input)}
       />
     </>
   );

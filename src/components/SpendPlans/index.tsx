@@ -1,7 +1,7 @@
 'use client';
 
 import { LoadingText } from '@/components/Base/LoadingText';
-import { Users } from 'lucide-react';
+import { ArrowLeftRight, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -23,6 +23,7 @@ import { countdownLabel } from '@/lib/helper/spendPlans';
 import { SpendPlanSheet } from './SpendPlanSheet';
 import type { SpendPlan } from '@/lib/type';
 import { ItemIcon } from '@/components/Base/ItemIcon';
+import { ExchangeSheet } from '@/components/Exchange';
 
 const PHASE_ORDER: SpendPlanPhase[] = ['review', 'upcoming', 'done'];
 
@@ -31,6 +32,7 @@ export function SpendPlansView() {
   const router = useRouter();
   const { ready, spendPlans, categories, addSpendPlan } = useStore();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [exchangeOpen, setExchangeOpen] = useState(false);
 
   const grouped = useMemo(() => {
     const today = todayIso();
@@ -65,15 +67,26 @@ export function SpendPlansView() {
           </h1>
           <p className="mt-1 text-[0.9375rem] text-ink-soft">{t.spendPlans.subtitle}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setSheetOpen(true)}
-          className="btn-primary tap hidden min-h-11 items-center gap-2 rounded-full px-5 text-[0.9375rem] font-semibold md:inline-flex"
-        >
-          <Icon name="plus" size={20} />
-          {t.spendPlans.create}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setExchangeOpen(true)}
+            className="tap inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 text-[0.9375rem] font-semibold"
+          >
+            <ArrowLeftRight size={18} aria-hidden="true" />
+            {t.exchange.open}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className="btn-primary tap hidden min-h-11 items-center gap-2 rounded-full px-5 text-[0.9375rem] font-semibold md:inline-flex"
+          >
+            <Icon name="plus" size={20} />
+            {t.spendPlans.create}
+          </button>
+        </div>
       </div>
+      <ExchangeSheet open={exchangeOpen} onClose={() => setExchangeOpen(false)} />
 
       {spendPlans.length === 0 ? (
         <div className="panel mx-auto max-w-xl px-6 py-10 text-center">
